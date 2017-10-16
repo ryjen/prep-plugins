@@ -1,0 +1,5 @@
+{
+    "executable": "@PLUGIN_NAME@",
+    "type": "internal",
+    "version": "1.0"
+}
