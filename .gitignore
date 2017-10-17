@@ -1,1 +1,4 @@
 debug
+pkg
+src
+!src/github.com/ryjen/prep-plugins

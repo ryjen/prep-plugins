@@ -2,27 +2,32 @@ package main
 
 import (
 	"os"
-	"os/exec"
 	"github.com/ryjen/prep-plugins/support"
+	"gopkg.in/libgit2/git2go.v26"
 )
 
 func MakeBuild(p *plugin.Plugin) error {
 
-	params, err := p.ReadBuild()
+	params, err := p.ReadResolver()
 
 	if err != nil {
 		return err
 	}
 
-    os.Chdir(params.BuildPath)
+	cloneOptions := &git.CloneOptions{
+		Bare: true,
+	}
+	_, err = git.Clone(params.Location, params.Path, cloneOptions)
 
-    cmd := exec.Command("make", "-j2", "install")
+	if err != nil {
+		return err
+	}
 
-	return cmd.Run()
+	return p.WriteReturn(params.Path)
 }
 
 func main() {
-	
+
 	p := plugin.New()
 
 	p.OnBuild = MakeBuild
