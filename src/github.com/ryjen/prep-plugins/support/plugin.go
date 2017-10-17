@@ -1,4 +1,4 @@
-package main
+package plugin
 
 import (
     "bufio"
@@ -12,19 +12,19 @@ import (
  * the plugin type with hook callbacks
  */
 type Plugin struct {
-    OnLoad func() error
-    OnBuild func() error
-    OnInstall func() error
-    OnRemove func() error
-    OnResolve func() error
+    OnLoad func(p *Plugin) error
+    OnBuild func(p *Plugin) error
+    OnInstall func(p *Plugin) error
+    OnRemove func(p *Plugin) error
+    OnResolve func(p *Plugin) error
 }
 
 /**
  * base struct that defines a package parameters
  */
 type PackageParams struct {
-    pkg string
-    version string
+    Package string
+    Version string
 }
 
 /** 
@@ -32,10 +32,10 @@ type PackageParams struct {
  */
 type BuildParams struct {
     *PackageParams
-    sourcePath string
-    buildPath string
-    installPath string
-    buildOpts string
+    SourcePath string
+    BuildPath string
+    InstallPath string
+    BuildOpts string
 }
 
 /** 
@@ -43,22 +43,22 @@ type BuildParams struct {
  */
 type InstallParams struct {
     *PackageParams
-    repository string
+    Repository string
 }
 
 /**
  * resolve hook params
  */
 type ResolverParams struct {
-    path string
-    location string
+    Path string
+    Location string
 }
 
 /** 
  * creates a new plugin with no-op callbacks
  */
-func NewPlugin() *Plugin {
-    noop := func() error {
+func New() *Plugin {
+    noop := func(p *Plugin) error {
         return nil
     }
 
@@ -129,37 +129,37 @@ func (p *Plugin) ReadBuild() (*BuildParams, error) {
 
     var err error
 
-    params.pkg, err = p.Read()
+    params.Package, err = p.Read()
 
     if err != nil {
         return params, err
     }
 
-    params.version, err = p.Read()
+    params.Version, err = p.Read()
 
     if err != nil {
         return params, err
     }
 
-    params.sourcePath, err = p.Read()
+    params.SourcePath, err = p.Read()
 
     if err != nil {
         return params, err
     }
 
-    params.buildPath, err = p.Read()
+    params.BuildPath, err = p.Read()
 
     if err != nil {
         return params, err
     }
 
-    params.installPath, err = p.Read()
+    params.InstallPath, err = p.Read()
 
     if err != nil {
         return params, err
     }
 
-    params.buildOpts, err = p.Read()
+    params.BuildOpts, err = p.Read()
 
     if err != nil {
         return params, err
@@ -178,19 +178,19 @@ func (p *Plugin) ReadInstall() (*InstallParams, error) {
 
     var err error
 
-    params.pkg, err = p.Read()
+    params.Package, err = p.Read()
 
     if err != nil {
         return params, err
     }
 
-    params.version, err = p.Read()
+    params.Version, err = p.Read()
 
     if err != nil {
         return params, err
     }
 
-    params.repository, err = p.Read()
+    params.Repository, err = p.Read()
 
     if err != nil {
         return params, err
@@ -209,13 +209,13 @@ func (p *Plugin) ReadResolver() (*ResolverParams, error) {
 
     var err error
 
-    params.path, err = p.Read()
+    params.Path, err = p.Read()
 
     if err != nil {
         return params, err
     }
 
-    params.location, err = p.Read()
+    params.Location, err = p.Read()
 
     if err != nil {
         return params, err
@@ -254,30 +254,16 @@ func  (p *Plugin) Execute() error {
 
     switch strings.ToUpper(command) {
     case "LOAD":
-        return p.OnLoad()
+        return p.OnLoad(p)
     case "INSTALL":
-        return p.OnInstall()
+        return p.OnInstall(p)
     case "REMOVE":
-        return p.OnRemove()
+        return p.OnRemove(p)
     case "BUILD":
-        return p.OnBuild()
+        return p.OnBuild(p)
     case "RESOLVE":
-        return p.OnResolve()
+        return p.OnResolve(p)
     default:
         return errors.New("unknown plugin hook")
     }
-}
-
-
-func main() {
-
-    plugin := NewPlugin()
-
-    err := plugin.Execute()
-
-    if err != nil {
-        os.Exit(1)
-    }
-
-    os.Exit(0)
 }
