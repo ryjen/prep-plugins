@@ -36,11 +36,9 @@ function(add_plugin)
 
 endfunction()
 
-foreach(PLUGIN ${PLUGIN_NAMES})
-  message("Adding plugin ${PLUGIN}")
-  add_subdirectory(${PLUGIN})
-endforeach()
+add_subdirectory(support)
 
+add_subdirectory(make)
 
 add_dependencies(make support)
 
