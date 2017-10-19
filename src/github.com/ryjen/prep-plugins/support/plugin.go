@@ -17,6 +17,7 @@ type Hook func(*Plugin) error
 type Plugin struct {
     Name string
     OnLoad Hook
+    OnUnload Hook
     OnBuild Hook
     OnInstall Hook
     OnRemove Hook
@@ -66,7 +67,8 @@ func NewPlugin(name string) *Plugin {
         return nil
     }
 
-    return &Plugin{name, noop, noop, noop, noop, noop }
+    return &Plugin{name, noop, noop,noop,
+    noop, noop, noop }
 }
 
 /**
@@ -304,6 +306,8 @@ func  (p *Plugin) Execute() error {
         return p.OnBuild(p)
     case "RESOLVE":
         return p.OnResolve(p)
+    case "UNLOAD":
+        return p.OnUnload(p)
     default:
         return errors.New("unknown plugin hook")
     }
