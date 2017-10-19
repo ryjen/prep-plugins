@@ -8,7 +8,7 @@ import (
 
 func Load(p *plugin.Plugin) error {
 
-	err := p.RunCommand("make", "--version")
+	err := p.RunCommand("brew", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -17,25 +17,34 @@ func Load(p *plugin.Plugin) error {
 	return nil
 }
 
-func MakeBuild(p *plugin.Plugin) error {
+func Install(p *plugin.Plugin) error {
 
-	params, err := p.ReadBuild()
+	params, err := p.ReadInstall()
 
 	if err != nil {
 		return err
 	}
 
-    os.Chdir(params.BuildPath)
+	return p.RunCommand("brew", "install", params.Package)
+}
 
-    return p.RunCommand("make", "-j2", "install")
+func Remove(p *plugin.Plugin) error {
+	params, err := p.ReadInstall()
+
+	if err != nil {
+		return err
+	}
+
+	return p.RunCommand("brew", "uninstall", params.Package)
 }
 
 func main() {
-	
+
 	p := plugin.NewPlugin("make")
 
 	p.OnLoad = Load
-	p.OnBuild = MakeBuild
+	p.OnInstall = Install
+	p.OnRemove = Remove
 
 	err := p.Execute()
 
