@@ -6,17 +6,21 @@ import (
     "strings"
     "fmt"
     "errors"
+    "os/exec"
 )
+
+type Hook func(*Plugin) error
 
 /**
  * the plugin type with hook callbacks
  */
 type Plugin struct {
-    OnLoad func(p *Plugin) error
-    OnBuild func(p *Plugin) error
-    OnInstall func(p *Plugin) error
-    OnRemove func(p *Plugin) error
-    OnResolve func(p *Plugin) error
+    Name string
+    OnLoad Hook
+    OnBuild Hook
+    OnInstall Hook
+    OnRemove Hook
+    OnResolve Hook
 }
 
 /**
@@ -31,7 +35,7 @@ type PackageParams struct {
  * build hook parameters
  */
 type BuildParams struct {
-    *PackageParams
+    PackageParams
     SourcePath string
     BuildPath string
     InstallPath string
@@ -42,7 +46,7 @@ type BuildParams struct {
  * install/remove hook parameters
  */
 type InstallParams struct {
-    *PackageParams
+    PackageParams
     Repository string
 }
 
@@ -57,19 +61,19 @@ type ResolverParams struct {
 /** 
  * creates a new plugin with no-op callbacks
  */
-func New() *Plugin {
+func NewPlugin(name string) *Plugin {
     noop := func(p *Plugin) error {
         return nil
     }
 
-    return &Plugin{noop, noop, noop, noop, noop }
+    return &Plugin{name, noop, noop, noop, noop, noop }
 }
 
 /**
  * creates new build hook parameters
  */
 func NewBuildParams() *BuildParams {
-    return &BuildParams{}
+    return new(BuildParams)
 }
 
 /**
@@ -84,6 +88,39 @@ func NewInstallParams() *InstallParams {
  */
 func NewResolverParams() *ResolverParams {
     return &ResolverParams{}
+}
+
+func (p *Plugin) keyName(key string) string {
+
+    keys := []string{"PREP", strings.ToUpper(p.Name), strings.ToUpper(key)}
+
+    return strings.Join(keys, "_")
+}
+
+/**
+ * abstraction for plugin key/value storage
+ * just uses environment variables for now
+ */
+func (p *Plugin) Save(key string, value string) error {
+
+    return os.Setenv(p.keyName(key), value)
+}
+
+func (p *Plugin) Lookup(key string) string {
+    return os.Getenv(p.keyName(key))
+}
+
+
+func (p *Plugin) SetEnabled(value bool) error {
+    if value {
+        return p.Save("enabled", "yes")
+    } else {
+        return p.Save("enabled", "no")
+    }
+}
+
+func (p *Plugin) IsEnabled() bool {
+    return p.Lookup("enabled") != "no"
 }
 
 /**
@@ -246,6 +283,10 @@ func (p *Plugin) WriteEcho(value string) error {
  * reads an input hook, and executes
  */
 func  (p *Plugin) Execute() error {
+    if !p.IsEnabled() {
+        return nil
+    }
+
     command, err := p.Read()
 
     if err != nil {
@@ -266,4 +307,12 @@ func  (p *Plugin) Execute() error {
     default:
         return errors.New("unknown plugin hook")
     }
+}
+
+func (p *Plugin) RunCommand(name string, args ...string) error {
+    cmd := exec.Command(name, args...)
+    cmd.Stdout = os.Stdout
+    cmd.Stdin = os.Stdin
+    cmd.Stderr = os.Stderr
+    return cmd.Run()
 }

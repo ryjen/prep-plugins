@@ -2,11 +2,12 @@ package main
 
 import (
 	"os"
+	"fmt"
 	"github.com/ryjen/prep-plugins/support"
 	"gopkg.in/libgit2/git2go.v26"
 )
 
-func MakeBuild(p *plugin.Plugin) error {
+func Resolve(p *plugin.Plugin) error {
 
 	params, err := p.ReadResolver()
 
@@ -28,13 +29,14 @@ func MakeBuild(p *plugin.Plugin) error {
 
 func main() {
 
-	p := plugin.New()
+	p := plugin.NewPlugin("git")
 
-	p.OnBuild = MakeBuild
+	p.OnResolve = Resolve
 
 	err := p.Execute()
 
 	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 

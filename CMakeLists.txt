@@ -9,7 +9,6 @@ set(GOPATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 include(golang)
 
-set(PREP_PLUGINS support make cmake autotools git PARENT_SCOPE)
-
 add_subdirectory(src)
 
+add_custom_target(build_plugins ALL DEPENDS support make cmake autotools git homebrew archive)

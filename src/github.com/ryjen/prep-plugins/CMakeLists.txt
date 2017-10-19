@@ -29,7 +29,8 @@ function(add_plugin)
       configure_file("${CMAKE_CURRENT_SOURCE_DIR}/${MANIFEST_NAME}.in" "${OUTPUT_FOLDER}/${MANIFEST_NAME}" @ONLY)
     endif()
 
-    add_custom_command(TARGET ${ADD_PLUGIN_TARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E copy ${ADD_PLUGIN_EXECUTABLE} ${OUTPUT_FOLDER})
+    add_custom_command(TARGET ${ADD_PLUGIN_TARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E copy ${ADD_PLUGIN_EXECUTABLE}
+            ${OUTPUT_FOLDER})
 
 endfunction()
 
@@ -43,6 +44,10 @@ add_subdirectory(autotools)
 
 add_subdirectory(git)
 
+add_subdirectory(homebrew)
+
+add_subdirectory(archive)
+
 add_dependencies(make support)
 
 add_dependencies(cmake support)
@@ -51,3 +56,6 @@ add_dependencies(autotools support)
 
 add_dependencies(git support)
 
+add_dependencies(homebrew support)
+
+add_dependencies(archive support)

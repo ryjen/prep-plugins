@@ -2,11 +2,22 @@ package main
 
 import (
 	"os"
-	"os/exec"
 	"fmt"
 	"errors"
 	"github.com/ryjen/prep-plugins/support"
 )
+
+func Load(p *plugin.Plugin) error {
+
+	err := p.RunCommand("autoconf", "--version")
+
+	if err != nil {
+		p.SetEnabled(false)
+		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
+	}
+	return nil
+}
+
 
 func MakeBuild(p *plugin.Plugin) error {
 
@@ -42,9 +53,7 @@ func MakeBuild(p *plugin.Plugin) error {
 		}
 
 		// run the autogen script
-		cmd := exec.Command(autogen)
-
-		err = cmd.Run()
+		err = p.RunCommand(autogen)
 
 		if err != nil {
 			return err
@@ -67,20 +76,20 @@ func MakeBuild(p *plugin.Plugin) error {
 	}
 
 	// and execute the configure script
-	cmd := exec.Command(configure, fmt.Sprint("--prefix=", params.InstallPath), params.BuildOpts)
-
-	return cmd.Run()
+	return p.RunCommand(configure, fmt.Sprint("--prefix=", params.InstallPath), params.BuildOpts)
 }
 
 func main() {
 
-	p := plugin.New()
+	p := plugin.NewPlugin("autotools")
 
+	p.OnLoad = Load
 	p.OnBuild = MakeBuild
 
 	err := p.Execute()
 
 	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
