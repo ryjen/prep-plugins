@@ -8,7 +8,7 @@ import (
 
 func Load(p *plugin.Plugin) error {
 
-	err := p.RunCommand("make", "--version")
+	err := p.ExecuteExternal("make", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -27,7 +27,7 @@ func MakeBuild(p *plugin.Plugin) error {
 
     os.Chdir(params.BuildPath)
 
-    return p.RunCommand("make", "-j2", "install")
+    return p.ExecuteExternal("make", "-j2", "install")
 }
 
 func main() {

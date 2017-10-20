@@ -7,6 +7,7 @@ import (
     "fmt"
     "errors"
     "os/exec"
+    "io"
 )
 
 type Hook func(*Plugin) error
@@ -22,6 +23,7 @@ type Plugin struct {
     OnInstall Hook
     OnRemove Hook
     OnResolve Hook
+    Input io.Reader
 }
 
 /**
@@ -68,7 +70,7 @@ func NewPlugin(name string) *Plugin {
     }
 
     return &Plugin{name, noop, noop,noop,
-    noop, noop, noop }
+    noop, noop, noop, os.Stdin }
 }
 
 /**
@@ -130,7 +132,7 @@ func (p *Plugin) IsEnabled() bool {
  */
 func (p *Plugin) Read() (string, error) {
 
-    reader := bufio.NewReader(os.Stdin)
+    reader := bufio.NewReader(p.Input)
     text, err := reader.ReadString('\n')
 
     return strings.TrimSpace(text), err
@@ -292,6 +294,9 @@ func  (p *Plugin) Execute() error {
     command, err := p.Read()
 
     if err != nil {
+        if err == io.EOF {
+            return nil
+        }
         return err
     }
 
@@ -309,14 +314,49 @@ func  (p *Plugin) Execute() error {
     case "UNLOAD":
         return p.OnUnload(p)
     default:
-        return errors.New("unknown plugin hook")
+        return errors.New(fmt.Sprint("unknown plugin hook ", command))
     }
 }
 
-func (p *Plugin) RunCommand(name string, args ...string) error {
+func (plugin *Plugin) ExecutePipe(header []string) error {
+
+    reader, writer := io.Pipe()
+
+    defer reader.Close()
+
+    // set the plugin input to our pipe
+    plugin.Input = reader
+
+    handler := make(chan error)
+
+    go func() {
+        defer writer.Close()
+
+        for _, data := range header {
+
+            if _, err := writer.Write([]byte(data)); err != nil {
+                handler <- err
+                return
+            }
+        }
+
+        close(handler)
+    }()
+
+    err := plugin.Execute()
+
+    if err != nil {
+        return err
+    }
+
+    return <- handler
+}
+
+func (p *Plugin) ExecuteExternal(name string, args ...string) error {
     cmd := exec.Command(name, args...)
     cmd.Stdout = os.Stdout
     cmd.Stdin = os.Stdin
     cmd.Stderr = os.Stderr
     return cmd.Run()
 }
+

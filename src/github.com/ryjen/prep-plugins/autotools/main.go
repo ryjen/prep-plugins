@@ -9,7 +9,7 @@ import (
 
 func Load(p *plugin.Plugin) error {
 
-	err := p.RunCommand("autoconf", "--version")
+	err := p.ExecuteExternal("autoconf", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -53,7 +53,7 @@ func MakeBuild(p *plugin.Plugin) error {
 		}
 
 		// run the autogen script
-		err = p.RunCommand(autogen)
+		err = p.ExecuteExternal(autogen)
 
 		if err != nil {
 			return err
@@ -76,17 +76,22 @@ func MakeBuild(p *plugin.Plugin) error {
 	}
 
 	// and execute the configure script
-	return p.RunCommand(configure, fmt.Sprint("--prefix=", params.InstallPath), params.BuildOpts)
+	return p.ExecuteExternal(configure, fmt.Sprint("--prefix=", params.InstallPath), params.BuildOpts)
 }
 
-func main() {
+func NewAutotoolsPlugin() *plugin.Plugin {
 
 	p := plugin.NewPlugin("autotools")
 
 	p.OnLoad = Load
 	p.OnBuild = MakeBuild
 
-	err := p.Execute()
+	return p
+}
+
+func main() {
+
+	err := NewAutotoolsPlugin().Execute()
 
 	if err != nil {
 		fmt.Println(err)

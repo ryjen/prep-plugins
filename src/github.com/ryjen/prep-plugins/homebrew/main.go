@@ -8,7 +8,7 @@ import (
 
 func Load(p *plugin.Plugin) error {
 
-	err := p.RunCommand("brew", "--version")
+	err := p.ExecuteExternal("brew", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -25,7 +25,7 @@ func Install(p *plugin.Plugin) error {
 		return err
 	}
 
-	return p.RunCommand("brew", "install", params.Package)
+	return p.ExecuteExternal("brew", "install", params.Package)
 }
 
 func Remove(p *plugin.Plugin) error {
@@ -35,7 +35,7 @@ func Remove(p *plugin.Plugin) error {
 		return err
 	}
 
-	return p.RunCommand("brew", "uninstall", params.Package)
+	return p.ExecuteExternal("brew", "uninstall", params.Package)
 }
 
 func main() {
