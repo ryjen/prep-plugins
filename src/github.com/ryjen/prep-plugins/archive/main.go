@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"github.com/ryjen/prep-plugins/support"
+	"github.com/VictorLowther/go-libarchive"
 )
 
 func Resolve(p *plugin.Plugin) error {
