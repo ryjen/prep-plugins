@@ -5,21 +5,28 @@ import (
 	"io/ioutil"
 	"testing"
 	"fmt"
+	"io"
+	"path/filepath"
+	"net/http"
+	"github.com/mholt/archiver"
+	"github.com/ryjen/prep-plugins/support"
 )
 
-func TestArchive(t *testing.T) {
+func CreateBuildDirectories(t *testing.T) (string, *plugin.BuildParams) {
 
-	p := NewAutotoolsPlugin()
+	params := plugin.NewBuildParams()
 
 	path, err := ioutil.TempDir(os.TempDir(), t.Name())
 
 	if err != nil {
-		t.Error("unable to create temporary folder ", path)
+		t.Error(err)
 	}
 
-	filename := "libarchive-3.3.2.tar.gz"
+	sourceFolder := "libarchive-3.3.2"
 
-	url := strings.Join("http://www.libarchive.org/downloads/", filename)
+	archiveFile := sourceFolder + ".tar.gz"
+
+	url := "http://www.libarchive.org/downloads/" + archiveFile
 
 	resp, err := http.Get(url)
 
@@ -27,69 +34,102 @@ func TestArchive(t *testing.T) {
 		t.Error(err)
 	}
 
-	file, err := os.Create(path)
+	archivePath := filepath.Join(path, archiveFile)
 
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(file, resp.Body)
-
-	if err != nil {
-		return err
-	}
-
-	file.Close()
-
-	buildpath := filepath.Join(path, "build")
-
-	err = os.MkdirAll(buildpath)
-
-	if err != nil {
-		return err
-	}
-
-	installpath := filepath.Join(path, "install")
-
-	err = os.MkdirAll(installpath)
-
-	if err != nil {
-		return err
-	}
-
-	ar := archiver.MatchingFormat(filename)
-
-	err = ar.Open(path, params.Path)
-
-	if err != nil {
-		return err
-	}
-
-	var Header = []string{
-		"BUILD\n",
-		"libarchive\n",
-		"3.3.2\n",
-		fmt.Sprintln(path),
-		fmt.Sprintln(buildpath),
-		fmt.Sprintln(installpath),
-		"\n",
-		"END\n",
-	}
-
-	err = p.ExecutePipe(Header)
+	file, err := os.Create(archivePath)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	fileInfo, err := ioutil.ReadDir(path)
+	if resp.StatusCode != 200 {
+		t.Error("Invalid url")
+	}
+
+	_, err = io.Copy(file, resp.Body)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	file.Close()
+
+	params.Package = "libarchive"
+	params.Version = "3.3.2"
+
+	params.SourcePath = filepath.Join(path, "source")
+
+	err = os.MkdirAll(params.SourcePath, os.FileMode(0700))
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	params.BuildPath = filepath.Join(path, "build")
+
+	err = os.MkdirAll(params.BuildPath, os.FileMode(0700))
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	params.InstallPath = filepath.Join(path, "install")
+
+	err = os.MkdirAll(params.InstallPath, os.FileMode(0700))
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	ar := archiver.MatchingFormat(archiveFile)
+
+	err = ar.Open(archivePath, params.SourcePath)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	params.SourcePath = filepath.Join(params.SourcePath, sourceFolder)
+
+	return path, params
+}
+
+
+func TestArchive(t *testing.T) {
+
+	p := NewAutotoolsPlugin()
+
+	path, params := CreateBuildDirectories(t)
+
+	defer os.RemoveAll(path)
+
+	fmt.Println(params.SourcePath)
+
+	var Header = []string {
+		"BUILD\n",
+		fmt.Sprintln(params.Package),
+		fmt.Sprintln(params.Version),
+		fmt.Sprintln(params.SourcePath),
+		fmt.Sprintln(params.BuildPath),
+		fmt.Sprintln(params.InstallPath),
+		fmt.Sprintln(params.BuildOpts),
+		"END\n",
+	}
+
+	err := p.ExecutePipe(Header)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	fileInfo, err := ioutil.ReadDir(params.BuildPath)
 
 	if err != nil {
 		t.Error(err)
 	}
 
 	if len(fileInfo) == 0 {
-		t.Error("Did not extract test archive")
+		t.Error("Did not generates build in build path")
 	}
 }
 

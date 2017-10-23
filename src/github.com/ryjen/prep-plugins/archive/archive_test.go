@@ -39,6 +39,8 @@ func TestArchive(t *testing.T) {
 	if len(fileInfo) == 0 {
 		t.Error("Did not extract test archive")
 	}
+
+	// TODO: archive specific checks
 }
 
 func TestMain( m *testing.M) {

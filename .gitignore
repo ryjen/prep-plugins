@@ -1,2 +1,10 @@
 debug
 pkg
+src/github.com/dsnet/
+src/github.com/golang/
+src/github.com/mholt/
+src/github.com/nwaples/
+src/github.com/pierrec/
+src/github.com/ulikunitz/
+src/gopkg.in/
+

@@ -28,7 +28,7 @@ func MakeBuild(p *plugin.Plugin) error {
 	}
 
 	// path to the configure script
-	configure := fmt.Sprint(params.BuildPath, "/configure")
+	configure := fmt.Sprint(params.SourcePath, "/configure")
 
 	_, err = os.Stat(configure)
 
