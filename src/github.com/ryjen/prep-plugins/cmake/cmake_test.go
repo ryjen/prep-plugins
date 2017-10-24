@@ -8,20 +8,21 @@ import (
 	"github.com/ryjen/prep-plugins/support"
 )
 
-func TestArchive(t *testing.T) {
+func TestCmake(t *testing.T) {
 
-	p := NewAutotoolsPlugin()
+	p := NewCmakePlugin()
 
-	params, err := plugin.CreateTestBuild("http://www.libarchive.org/downloads/libarchive-3.3.2.tar.gz")
+	params, err := plugin.CreateTestBuild("https://github.com/jedisct1/minisign/archive/0.7.tar.gz")
 
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	params.Package = "libarchive"
+	params.Package = "minisign"
 
 	defer os.RemoveAll(params.RootPath)
+
 
 	var Header = []string {
 		"BUILD\n",
@@ -52,6 +53,8 @@ func TestArchive(t *testing.T) {
 		t.Error("Did not generates build in build path")
 		return
 	}
+
+	// TODO: archive specific checks
 }
 
 func TestMain( m *testing.M) {

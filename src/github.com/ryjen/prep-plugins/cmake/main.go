@@ -30,14 +30,19 @@ func MakeBuild(p *plugin.Plugin) error {
 	return p.ExecuteExternal("cmake", fmt.Sprint("-DCMAKE_INSTALL_PREFIX=", params.InstallPath), params.BuildOpts, params.SourcePath)
 }
 
-func main() {
+func NewCmakePlugin() (*plugin.Plugin) {
 
 	p := plugin.NewPlugin("cmake")
 
 	p.OnLoad = Load
 	p.OnBuild = MakeBuild
 
-	err := p.Execute()
+	return p
+}
+
+func main() {
+
+	err := NewCmakePlugin().Execute()
 
 	if err != nil {
 		fmt.Println(err)

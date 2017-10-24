@@ -8,6 +8,11 @@ import (
     "errors"
     "os/exec"
     "io"
+    "io/ioutil"
+    "net/http"
+    "path/filepath"
+    "mime"
+    "github.com/mholt/archiver"
 )
 
 type Hook func(*Plugin) error
@@ -358,5 +363,158 @@ func (p *Plugin) ExecuteExternal(name string, args ...string) error {
     cmd.Stdin = os.Stdin
     cmd.Stderr = os.Stderr
     return cmd.Run()
+}
+
+/**
+ * build parameters for testing
+ */
+type TestBuildParams struct {
+    BuildParams
+    RootPath string
+}
+
+
+type FileVersionInfo struct {
+    FileName string
+    Version string
+    BaseName string
+}
+
+/**
+ * utility to parse a version from a file path
+ * @return a version string (ex. 4.3.2-beta)
+ */
+func parseFileAndVerionFromPath(path string) (*FileVersionInfo, error) {
+
+    info := &FileVersionInfo{}
+
+    // get the filename
+    info.FileName = filepath.Base(path)
+
+    // split by extension separator
+    parts := strings.Split(info.FileName, "-")
+
+    var version []string
+
+    if len(parts) > 1 {
+        info.BaseName = parts[0]
+        parts = strings.Split(strings.Join(parts[1:], "-"), ".")
+    } else {
+        parts = strings.Split(info.FileName, ".")
+    }
+
+    // while a valid mime type extension
+    for len(parts) > 0 {
+
+        // pop the last extension part again    
+        part := parts[0]
+
+        // retest if valid mime type extension
+        mtype := mime.TypeByExtension("." + part)
+
+        if (len(mtype) > 0) {
+            break;
+        }
+        
+        parts = parts[1:]
+
+        version = append(version, part)
+    }
+
+    // and join the rest to get the version string
+    info.Version = strings.Join(version, ".")
+
+    return info, nil
+}
+
+/**
+ * creates parameters for testing build plugins.
+ * It is up to the test to remove the temporary RootPath
+ */
+func CreateTestBuild(url string) (*TestBuildParams, error) {
+
+    params := &TestBuildParams{}
+
+    var err error = nil
+
+    params.RootPath, err = ioutil.TempDir(os.TempDir(), filepath.Base(os.TempDir()))
+
+    if err != nil {
+        return nil, err
+    }
+
+    info, err := parseFileAndVerionFromPath(url)
+
+    if err != nil {
+        return nil, err
+    }
+
+    params.Package, params.Version = info.BaseName, info.Version
+
+    sourceFolder := params.Package + "-" + params.Version
+
+    archiveFile := info.FileName
+
+    resp, err := http.Get(url)
+
+    if err != nil {
+        return nil, err
+    }
+
+    archivePath := filepath.Join(params.RootPath, archiveFile)
+
+    file, err := os.Create(archivePath)
+
+    if err != nil {
+        return nil, err
+    }
+
+    if resp.StatusCode != 200 {
+        return nil, errors.New("Invalid url")
+    }
+
+    _, err = io.Copy(file, resp.Body)
+
+    if err != nil {
+        return nil, err
+    }
+
+    file.Close()
+
+    params.SourcePath = filepath.Join(params.RootPath, "source")
+
+    err = os.MkdirAll(params.SourcePath, os.FileMode(0700))
+
+    if err != nil {
+        return nil, err
+    }
+
+    params.BuildPath = filepath.Join(params.RootPath, "build")
+
+    err = os.MkdirAll(params.BuildPath, os.FileMode(0700))
+
+    if err != nil {
+        return nil, err
+    }
+
+    params.InstallPath = filepath.Join(params.RootPath, "install")
+
+    err = os.MkdirAll(params.InstallPath, os.FileMode(0700))
+
+    if err != nil {
+        return nil, err
+    }
+
+    ar := archiver.MatchingFormat(archiveFile)
+
+    err = ar.Open(archivePath, params.SourcePath)
+
+    if err != nil {
+        return nil, err
+    }
+
+    params.SourcePath = filepath.Join(params.SourcePath, sourceFolder)
+
+    return params, nil
 }
 
