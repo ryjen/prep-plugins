@@ -15,6 +15,7 @@ func TestArchive(t *testing.T) {
 
 	if err != nil {
 		t.Error("unable to create temporary folder ", path)
+		return
 	}
 
 	var Header = []string{
@@ -28,12 +29,14 @@ func TestArchive(t *testing.T) {
 
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	fileInfo, err := ioutil.ReadDir(path)
 
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	if len(fileInfo) == 0 {
