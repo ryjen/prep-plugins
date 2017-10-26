@@ -1,18 +1,69 @@
 package main
 
 import (
-	"os"
 	"fmt"
-	"net/http"
-	"path/filepath"
-	"github.com/ryjen/prep-plugins/support"
 	"github.com/mholt/archiver"
-	"io"
+	"github.com/ryjen/prep-plugins/support"
+	"os"
+	"path/filepath"
 	"strings"
-	"net/url"
+	"mime"
 )
 
-func Resolve(p *plugin.Plugin) error {
+type FileVersionInfo struct {
+	FileName string
+	Version  string
+	BaseName string
+}
+
+/**
+ * utility to parse a version from a file path
+ * @return a version string (ex. 4.3.2-beta)
+ */
+func parseFileAndVerionFromPath(path string) (*FileVersionInfo, error) {
+
+	info := &FileVersionInfo{}
+
+	// get the filename
+	info.FileName = filepath.Base(path)
+
+	// split by extension separator
+	parts := strings.Split(info.FileName, "-")
+
+	var version []string
+
+	if len(parts) > 1 {
+		info.BaseName = parts[0]
+		parts = strings.Split(strings.Join(parts[1:], "-"), ".")
+	} else {
+		parts = strings.Split(info.FileName, ".")
+	}
+
+	// while a valid mime type extension
+	for len(parts) > 0 {
+
+		// pop the last extension part again
+		part := parts[0]
+
+		// retest if valid mime type extension
+		mtype := mime.TypeByExtension("." + part)
+
+		if len(mtype) > 0 {
+			break
+		}
+
+		parts = parts[1:]
+
+		version = append(version, part)
+	}
+
+	// and join the rest to get the version string
+	info.Version = strings.Join(version, ".")
+
+	return info, nil
+}
+
+func Resolve(p *support.Plugin) error {
 
 	params, err := p.ReadResolver()
 
@@ -30,31 +81,10 @@ func Resolve(p *plugin.Plugin) error {
 
 	path := filepath.Join(os.TempDir(), filename)
 
-	url, err := url.Parse(params.Location)
+	_, err = support.Copy(params.Location, path)
 
-	if strings.Contains(url.Scheme, "http") {
-
-		resp, err := http.Get(params.Location)
-
-		if err != nil {
-			return err
-		}
-
-		file, err := os.Create(path)
-
-		if err != nil {
-			return err
-		}
-
-		defer file.Close()
-
-		_, err = io.Copy(file, resp.Body)
-
-		if err != nil {
-			return err
-		}
-	} else {
-		plugin.Copy(params.Location, path)
+	if err != nil {
+		return err
 	}
 
 	ar := archiver.MatchingFormat(filename)
@@ -65,12 +95,24 @@ func Resolve(p *plugin.Plugin) error {
 		return err
 	}
 
-	return p.WriteEcho(params.Path)
+	info, err := parseFileAndVerionFromPath(filename)
+
+	if info != nil {
+		newPath := filepath.Join(params.Path, info.BaseName)
+
+		stat, _ := os.Stat(newPath)
+
+		if stat != nil && stat.Mode().IsDir() {
+			params.Path = newPath
+		}
+	}
+
+	return p.WriteReturn(params.Path)
 }
 
-func NewArchivePlugin() *plugin.Plugin {
+func NewArchivePlugin() *support.Plugin {
 
-	p := plugin.NewPlugin("archive")
+	p := support.NewPlugin("archive")
 
 	p.OnResolve = Resolve
 

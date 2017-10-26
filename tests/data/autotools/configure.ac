@@ -4,7 +4,7 @@
 AC_PREREQ([2.69])
 AC_INIT([autotools-plugin-test], [0.1.0], [ryan@micrantha.com])
 
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE
 
 # Checks for programs.
 

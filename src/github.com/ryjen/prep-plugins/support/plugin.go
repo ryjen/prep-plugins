@@ -1,16 +1,16 @@
-package plugin
+package support
 
 import (
     "bufio"
-    "os"
-    "strings"
-    "fmt"
     "errors"
-    "os/exec"
+    "fmt"
     "io"
     "io/ioutil"
+    "net/http"
+    "os"
+    "os/exec"
     "path/filepath"
-    "mime"
+    "strings"
 )
 
 type Hook func(*Plugin) error
@@ -19,14 +19,15 @@ type Hook func(*Plugin) error
  * the plugin type with hook callbacks
  */
 type Plugin struct {
-    Name string
-    OnLoad Hook
-    OnUnload Hook
-    OnBuild Hook
+    Name      string
+    OnLoad    Hook
+    OnUnload  Hook
+    OnBuild   Hook
     OnInstall Hook
-    OnRemove Hook
+    OnRemove  Hook
     OnResolve Hook
-    Input io.Reader
+    Input     io.Reader
+    Output    io.Writer
 }
 
 /**
@@ -37,18 +38,18 @@ type PackageParams struct {
     Version string
 }
 
-/** 
+/**
  * build hook parameters
  */
 type BuildParams struct {
     PackageParams
-    SourcePath string
-    BuildPath string
+    SourcePath  string
+    BuildPath   string
     InstallPath string
-    BuildOpts string
+    BuildOpts   string
 }
 
-/** 
+/**
  * install/remove hook parameters
  */
 type InstallParams struct {
@@ -60,11 +61,11 @@ type InstallParams struct {
  * resolve hook params
  */
 type ResolverParams struct {
-    Path string
+    Path     string
     Location string
 }
 
-/** 
+/**
  * creates a new plugin with no-op callbacks
  */
 func NewPlugin(name string) *Plugin {
@@ -72,8 +73,8 @@ func NewPlugin(name string) *Plugin {
         return nil
     }
 
-    return &Plugin{name, noop, noop,noop,
-    noop, noop, noop, os.Stdin }
+    return &Plugin{name, noop, noop, noop,
+        noop, noop, noop, os.Stdin, os.Stdout}
 }
 
 /**
@@ -116,7 +117,6 @@ func (p *Plugin) Save(key string, value string) error {
 func (p *Plugin) Lookup(key string) string {
     return os.Getenv(p.keyName(key))
 }
-
 
 func (p *Plugin) SetEnabled(value bool) error {
     if value {
@@ -274,7 +274,7 @@ func (p *Plugin) ReadResolver() (*ResolverParams, error) {
  * write a return value
  */
 func (p *Plugin) WriteReturn(value string) error {
-    _, err := fmt.Println("RETURN ", value)
+    _, err := fmt.Fprintln(p.Output, "RETURN ", value)
     return err
 }
 
@@ -282,14 +282,14 @@ func (p *Plugin) WriteReturn(value string) error {
  * write an echo message
  */
 func (p *Plugin) WriteEcho(value string) error {
-    _, err := fmt.Println("ECHO ", value)
+    _, err := fmt.Fprintln(p.Output,"ECHO ", value)
     return err
 }
 
 /**
  * reads an input hook, and executes
  */
-func  (p *Plugin) Execute() error {
+func (p *Plugin) Execute() error {
     if !p.IsEnabled() {
         return nil
     }
@@ -352,7 +352,7 @@ func (plugin *Plugin) ExecutePipe(header []string) error {
         return err
     }
 
-    return <- handler
+    return <-handler
 }
 
 func (p *Plugin) ExecuteExternal(name string, args ...string) error {
@@ -363,14 +363,6 @@ func (p *Plugin) ExecuteExternal(name string, args ...string) error {
     return cmd.Run()
 }
 
-func (p *Plugin) ExecuteExternalDir(name string, dir string, args ...string) error {
-    cmd := exec.Command(name, args...)
-    cmd.Stdout = os.Stdout
-    cmd.Stdin = os.Stdin
-    cmd.Stderr = os.Stderr
-    cmd.Dir = dir
-    return cmd.Run()
-}
 
 /**
  * build parameters for testing
@@ -378,60 +370,6 @@ func (p *Plugin) ExecuteExternalDir(name string, dir string, args ...string) err
 type TestBuildParams struct {
     BuildParams
     RootPath string
-}
-
-
-type FileVersionInfo struct {
-    FileName string
-    Version string
-    BaseName string
-}
-
-/**
- * utility to parse a version from a file path
- * @return a version string (ex. 4.3.2-beta)
- */
-func parseFileAndVerionFromPath(path string) (*FileVersionInfo, error) {
-
-    info := &FileVersionInfo{}
-
-    // get the filename
-    info.FileName = filepath.Base(path)
-
-    // split by extension separator
-    parts := strings.Split(info.FileName, "-")
-
-    var version []string
-
-    if len(parts) > 1 {
-        info.BaseName = parts[0]
-        parts = strings.Split(strings.Join(parts[1:], "-"), ".")
-    } else {
-        parts = strings.Split(info.FileName, ".")
-    }
-
-    // while a valid mime type extension
-    for len(parts) > 0 {
-
-        // pop the last extension part again    
-        part := parts[0]
-
-        // retest if valid mime type extension
-        mtype := mime.TypeByExtension("." + part)
-
-        if (len(mtype) > 0) {
-            break;
-        }
-        
-        parts = parts[1:]
-
-        version = append(version, part)
-    }
-
-    // and join the rest to get the version string
-    info.Version = strings.Join(version, ".")
-
-    return info, nil
 }
 
 /**
@@ -478,25 +416,52 @@ func CreateTestBuild() (*TestBuildParams, error) {
 }
 
 func Copy(src, dst string) (int64, error) {
-  src_file, err := os.Open(src)
-  if err != nil {
-    return 0, err
-  }
-  defer src_file.Close()
 
-  src_file_stat, err := src_file.Stat()
-  if err != nil {
-    return 0, err
-  }
+    // stat the source file
+    stat, err := os.Stat(src)
 
-  if !src_file_stat.Mode().IsRegular() {
-    return 0, fmt.Errorf("%s is not a regular file", src)
-  }
+    var srcReader io.ReadCloser
 
-  dst_file, err := os.Create(dst)
-  if err != nil {
-    return 0, err
-  }
-  defer dst_file.Close()
-  return io.Copy(dst_file, src_file)
+    // source is not a file?
+    if err != nil && os.IsNotExist(err) {
+
+        // try a url
+        resp, err := http.Get(src)
+
+        if err != nil {
+            return 0, fmt.Errorf("%s is not a regular file or url", src)
+        }
+
+        srcReader = resp.Body
+
+
+    } else if stat.Mode().IsRegular() {
+
+        // check to copy the file name if not specified
+        stat, err = os.Stat(dst)
+        if stat != nil && stat.Mode().IsDir() {
+            dst = filepath.Join(dst, filepath.Base(src))
+        }
+
+        // open the source file
+        srcReader, err = os.Open(src)
+        if err != nil {
+            return 0, err
+        }
+    } else {
+        // possibly a dir
+        return 0, err
+    }
+
+    defer srcReader.Close()
+
+    destFile, err := os.Create(dst)
+
+    if err != nil {
+        return 0, err
+    }
+
+    defer destFile.Close()
+
+    return io.Copy(destFile, srcReader)
 }

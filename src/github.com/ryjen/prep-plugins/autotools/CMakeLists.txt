@@ -11,8 +11,6 @@ add_go_executable(TARGET ${PLUGIN_NAME} NAME ${BINARY_NAME} SOURCE_FILES ${SOURC
 add_plugin(TARGET ${PLUGIN_NAME} EXECUTABLE ${BINARY_NAME})
 
 # setup test
-configure_file(main_test.go.in ${CMAKE_CURRENT_LIST_DIR}/main_test.go)
-
 set(TEST_NAME ${PLUGIN_NAME}-test)
 
 add_test(NAME ${TEST_NAME}

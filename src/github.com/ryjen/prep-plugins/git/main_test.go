@@ -14,7 +14,7 @@ var TEST_DATA = flag.String("data", "", "dir of the test data")
 
 func TestArchive(t *testing.T) {
 
-	p := NewArchivePlugin()
+	p := NewGitPlugin()
 
 	path, err := ioutil.TempDir(os.TempDir(), t.Name())
 
@@ -23,14 +23,14 @@ func TestArchive(t *testing.T) {
 		return
 	}
 
-	//defer os.RemoveAll(path)
+//	defer os.RemoveAll(path)
 
-	var archiveFile = filepath.Join(*TEST_DATA, "archive", "test-0.1.0.tar.gz")
+	var repoPath = filepath.Join(*TEST_DATA, "git")
 
 	var Header = []string{
 		"RESOLVE\n",
 		fmt.Sprintln(path),
-		fmt.Sprintln(archiveFile),
+		fmt.Sprintln(repoPath),
 		"END\n",
 	}
 
@@ -44,7 +44,7 @@ func TestArchive(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
+	
 	n, err := fmt.Sscanf(buffer.String(), "RETURN %s", &path)
 
 	if err != nil || n != 1{

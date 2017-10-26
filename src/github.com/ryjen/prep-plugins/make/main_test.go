@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ryjen/prep-plugins/support"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,9 +11,9 @@ import (
 
 var TEST_DATA = flag.String("data", "", "dir of the test data")
 
-func TestCmake(t *testing.T) {
+func TestMake(t *testing.T) {
 
-	p := NewCmakePlugin()
+	p := NewMakePlugin()
 
 	params, err := support.CreateTestBuild()
 
@@ -23,12 +22,19 @@ func TestCmake(t *testing.T) {
 		return
 	}
 
-	params.Package = "cmake-plugin-test"
+	params.Package = "make-plugin-test"
 	params.Version = "0.1.0"
 
-	params.SourcePath = filepath.Join(*TEST_DATA, "cmake")
+	params.SourcePath = filepath.Join(*TEST_DATA, "make")
 
 	defer os.RemoveAll(params.RootPath)
+
+	_, err = support.Copy(filepath.Join(params.SourcePath, "Makefile"), params.BuildPath)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
 	var Header = []string{
 		"BUILD\n",
@@ -48,19 +54,14 @@ func TestCmake(t *testing.T) {
 		return
 	}
 
-	fileInfo, err := ioutil.ReadDir(params.BuildPath)
+	path := filepath.Join(params.BuildPath, "make_output.log")
 
-	if err != nil {
+	_, err = os.Stat(path)
+
+	if err != nil && os.IsNotExist(err) {
 		t.Error(err)
 		return
 	}
-
-	if len(fileInfo) == 0 {
-		t.Error("Did not generates build in build path")
-		return
-	}
-
-	// TODO: archive specific checks
 }
 
 func TestMain(m *testing.M) {

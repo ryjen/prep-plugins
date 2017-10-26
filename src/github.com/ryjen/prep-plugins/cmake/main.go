@@ -1,12 +1,12 @@
 package main
 
 import (
-	"os"
 	"fmt"
 	"github.com/ryjen/prep-plugins/support"
+	"os"
 )
 
-func Load(p *plugin.Plugin) error {
+func Load(p *support.Plugin) error {
 
 	err := p.ExecuteExternal("cmake", "--version")
 
@@ -17,7 +17,7 @@ func Load(p *plugin.Plugin) error {
 	return nil
 }
 
-func MakeBuild(p *plugin.Plugin) error {
+func MakeBuild(p *support.Plugin) error {
 
 	params, err := p.ReadBuild()
 
@@ -30,9 +30,9 @@ func MakeBuild(p *plugin.Plugin) error {
 	return p.ExecuteExternal("cmake", fmt.Sprint("-DCMAKE_INSTALL_PREFIX=", params.InstallPath), params.BuildOpts, params.SourcePath)
 }
 
-func NewCmakePlugin() (*plugin.Plugin) {
+func NewCmakePlugin() *support.Plugin {
 
-	p := plugin.NewPlugin("cmake")
+	p := support.NewPlugin("cmake")
 
 	p.OnLoad = Load
 	p.OnBuild = MakeBuild

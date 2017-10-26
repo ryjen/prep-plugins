@@ -1,13 +1,13 @@
 package main
 
 import (
-	"os"
-	"io/ioutil"
-	"testing"
 	"flag"
 	"fmt"
-	"path/filepath"
 	"github.com/ryjen/prep-plugins/support"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"testing"
 )
 
 var TEST_DATA = flag.String("data", "", "dir of the test data")
@@ -16,7 +16,7 @@ func TestArchive(t *testing.T) {
 
 	p := NewAutotoolsPlugin()
 
-	params, err := plugin.CreateTestBuild()
+	params, err := support.CreateTestBuild()
 
 	if err != nil {
 		t.Error(err)
@@ -29,7 +29,7 @@ func TestArchive(t *testing.T) {
 
 	defer os.RemoveAll(params.RootPath)
 
-	var Header = []string {
+	var Header = []string{
 		"BUILD\n",
 		fmt.Sprintln(params.Package),
 		fmt.Sprintln(params.Version),
@@ -60,7 +60,7 @@ func TestArchive(t *testing.T) {
 	}
 }
 
-func TestMain( m *testing.M) {
+func TestMain(m *testing.M) {
 
 	os.Exit(m.Run())
 }

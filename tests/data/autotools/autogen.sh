@@ -1,5 +1,5 @@
-#! /bin/sh
+#!/bin/sh
 
 aclocal \
-	&& automake --add-missing \
-	&& autoconf
+	&& automake -ac \
+	&& autoconf $@
