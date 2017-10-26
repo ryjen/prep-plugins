@@ -11,8 +11,14 @@ include(golang)
 
 enable_testing()
 
-add_subdirectory(src)
-
 set(PLUGINS support make cmake autotools git homebrew archive)
 
 add_custom_target(build_plugins ALL DEPENDS ${PLUGINS})
+
+set(GOSHIM ${CMAKE_BINARY_DIR}/go_shim)
+
+configure_file(${CMAKE_CURRENT_LIST_DIR}/go_shim.in ${GOSHIM} @ONLY)
+
+set(TEST_DATA_PATH ${CMAKE_CURRENT_LIST_DIR}/tests/data)
+
+add_subdirectory(src)

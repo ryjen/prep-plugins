@@ -16,10 +16,11 @@ add_dependencies(${PLUGIN_NAME} goarchive)
 add_plugin(TARGET ${PLUGIN_NAME} EXECUTABLE ${BINARY_NAME})
 
 # setup test
-set(TEST_SOURCES main_test.go)
+configure_file(main_test.go.in ${CMAKE_CURRENT_LIST_DIR}/main_test.go)
 
 set(TEST_NAME ${PLUGIN_NAME}-test)
 
-add_go_executable(TARGET ${TEST_NAME} NAME ${TEST_NAME} SOURCE_FILES ${SOURCE_FILES} ${TEST_SOURCES})
+add_test(NAME ${TEST_NAME}
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+            COMMAND ${GOSHIM} test -data ${TEST_DATA_PATH})
 
-add_test(TARGET ${TEST_NAME} EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})

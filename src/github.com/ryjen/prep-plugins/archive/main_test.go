@@ -1,11 +1,15 @@
 package main
 
 import (
+    "flag"
 	"os"
 	"io/ioutil"
 	"testing"
+	"path/filepath"
 	"fmt"
 )
+
+var TEST_DATA = flag.String("data", "", "dir of the test data")
 
 func TestArchive(t *testing.T) {
 
@@ -18,10 +22,12 @@ func TestArchive(t *testing.T) {
 		return
 	}
 
+	var archiveFile = filepath.Join(*TEST_DATA, "archive", "autotools.tar.gz")
+
 	var Header = []string{
 		"RESOLVE\n",
 		fmt.Sprintln(path),
-		"http://www.libarchive.org/downloads/libarchive-3.3.2.tar.gz\n",
+		fmt.Sprintln(archiveFile),
 		"END\n",
 	}
 
@@ -47,6 +53,5 @@ func TestArchive(t *testing.T) {
 }
 
 func TestMain( m *testing.M) {
-
 	os.Exit(m.Run())
 }

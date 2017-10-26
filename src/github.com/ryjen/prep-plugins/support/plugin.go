@@ -9,10 +9,8 @@ import (
     "os/exec"
     "io"
     "io/ioutil"
-    "net/http"
     "path/filepath"
     "mime"
-    "github.com/mholt/archiver"
 )
 
 type Hook func(*Plugin) error
@@ -365,6 +363,15 @@ func (p *Plugin) ExecuteExternal(name string, args ...string) error {
     return cmd.Run()
 }
 
+func (p *Plugin) ExecuteExternalDir(name string, dir string, args ...string) error {
+    cmd := exec.Command(name, args...)
+    cmd.Stdout = os.Stdout
+    cmd.Stdin = os.Stdin
+    cmd.Stderr = os.Stderr
+    cmd.Dir = dir
+    return cmd.Run()
+}
+
 /**
  * build parameters for testing
  */
@@ -431,7 +438,7 @@ func parseFileAndVerionFromPath(path string) (*FileVersionInfo, error) {
  * creates parameters for testing build plugins.
  * It is up to the test to remove the temporary RootPath
  */
-func CreateTestBuild(url string) (*TestBuildParams, error) {
+func CreateTestBuild() (*TestBuildParams, error) {
 
     params := &TestBuildParams{}
 
@@ -442,44 +449,6 @@ func CreateTestBuild(url string) (*TestBuildParams, error) {
     if err != nil {
         return nil, err
     }
-
-    info, err := parseFileAndVerionFromPath(url)
-
-    if err != nil {
-        return nil, err
-    }
-
-    params.Package, params.Version = info.BaseName, info.Version
-
-    sourceFolder := params.Package + "-" + params.Version
-
-    archiveFile := info.FileName
-
-    resp, err := http.Get(url)
-
-    if err != nil {
-        return nil, err
-    }
-
-    archivePath := filepath.Join(params.RootPath, archiveFile)
-
-    file, err := os.Create(archivePath)
-
-    if err != nil {
-        return nil, err
-    }
-
-    if resp.StatusCode != 200 {
-        return nil, errors.New("Invalid url")
-    }
-
-    _, err = io.Copy(file, resp.Body)
-
-    if err != nil {
-        return nil, err
-    }
-
-    file.Close()
 
     params.SourcePath = filepath.Join(params.RootPath, "source")
 
@@ -505,16 +474,29 @@ func CreateTestBuild(url string) (*TestBuildParams, error) {
         return nil, err
     }
 
-    ar := archiver.MatchingFormat(archiveFile)
-
-    err = ar.Open(archivePath, params.SourcePath)
-
-    if err != nil {
-        return nil, err
-    }
-
-    params.SourcePath = filepath.Join(params.SourcePath, sourceFolder)
-
     return params, nil
 }
 
+func Copy(src, dst string) (int64, error) {
+  src_file, err := os.Open(src)
+  if err != nil {
+    return 0, err
+  }
+  defer src_file.Close()
+
+  src_file_stat, err := src_file.Stat()
+  if err != nil {
+    return 0, err
+  }
+
+  if !src_file_stat.Mode().IsRegular() {
+    return 0, fmt.Errorf("%s is not a regular file", src)
+  }
+
+  dst_file, err := os.Create(dst)
+  if err != nil {
+    return 0, err
+  }
+  defer dst_file.Close()
+  return io.Copy(dst_file, src_file)
+}

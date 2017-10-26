@@ -15,6 +15,14 @@ func Load(p *plugin.Plugin) error {
 		p.SetEnabled(false)
 		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
 	}
+
+	err = p.ExecuteExternal("automake", "--version")
+
+	if err != nil {
+		p.SetEnabled(false)
+		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
+	}
+
 	return nil
 }
 
@@ -29,6 +37,9 @@ func MakeBuild(p *plugin.Plugin) error {
 
 	// path to the configure script
 	configure := fmt.Sprint(params.SourcePath, "/configure")
+
+	// go to the build path
+	err = os.Chdir(params.BuildPath)
 
 	_, err = os.Stat(configure)
 
@@ -45,15 +56,8 @@ func MakeBuild(p *plugin.Plugin) error {
 			return errors.New(fmt.Sprint("Don't know how to build ", params.Package, "... no autotools configuration found."))
 		}
 
-		// change to the source path
-		err = os.Chdir(params.SourcePath)
-
-		if err != nil {
-			return err
-		}
-
 		// run the autogen script
-		err = p.ExecuteExternal(autogen)
+		err = p.ExecuteExternalDir(autogen, params.BuildPath)
 
 		if err != nil {
 			return err
@@ -68,15 +72,12 @@ func MakeBuild(p *plugin.Plugin) error {
 		}
 	}
 
-	// go to the build path
-	err = os.Chdir(params.BuildPath)
-
 	if err != nil {
 		return err
 	}
 
 	// and execute the configure script
-	return p.ExecuteExternal(configure, fmt.Sprint("--prefix=", params.InstallPath), params.BuildOpts)
+	return p.ExecuteExternalDir(configure, params.BuildPath, fmt.Sprint("--prefix=", params.InstallPath), params.BuildOpts)
 }
 
 func NewAutotoolsPlugin() *plugin.Plugin {

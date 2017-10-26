@@ -8,6 +8,8 @@ import (
 	"github.com/ryjen/prep-plugins/support"
 	"github.com/mholt/archiver"
 	"io"
+	"strings"
+	"net/url"
 )
 
 func Resolve(p *plugin.Plugin) error {
@@ -28,25 +30,32 @@ func Resolve(p *plugin.Plugin) error {
 
 	path := filepath.Join(os.TempDir(), filename)
 
-	resp, err := http.Get(params.Location)
+	url, err := url.Parse(params.Location)
 
-	if err != nil {
-		return err
+	if strings.Contains(url.Scheme, "http") {
+
+		resp, err := http.Get(params.Location)
+
+		if err != nil {
+			return err
+		}
+
+		file, err := os.Create(path)
+
+		if err != nil {
+			return err
+		}
+
+		defer file.Close()
+
+		_, err = io.Copy(file, resp.Body)
+
+		if err != nil {
+			return err
+		}
+	} else {
+		plugin.Copy(params.Location, path)
 	}
-
-	file, err := os.Create(path)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(file, resp.Body)
-
-	if err != nil {
-		return err
-	}
-
-	file.Close()
 
 	ar := archiver.MatchingFormat(filename)
 

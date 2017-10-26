@@ -8,21 +8,24 @@ import (
 	"github.com/ryjen/prep-plugins/support"
 )
 
+const var TEST_DATA = "/Users/ryanjennings/.devel/prep/plugins/tests/data"
+
 func TestCmake(t *testing.T) {
 
 	p := NewCmakePlugin()
 
-	params, err := plugin.CreateTestBuild("https://github.com/jedisct1/minisign/archive/0.7.tar.gz")
+	params, err := plugin.CreateTestBuild()
 
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	params.Package = "minisign"
+	params.Package = "cmake-plugin-test"
+	params.Version = "0.1.0"
+	params.SourcePath = filepath.Join(TEST_DATA, "cmake")
 
 	defer os.RemoveAll(params.RootPath)
-
 
 	var Header = []string {
 		"BUILD\n",
