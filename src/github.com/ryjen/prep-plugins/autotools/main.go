@@ -1,25 +1,55 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"errors"
+	"fmt"
 	"github.com/ryjen/prep-plugins/support"
+	"os"
+	"path/filepath"
 )
 
-func Load(p *plugin.Plugin) error {
+func Load(p *support.Plugin) error {
 
-	err := p.RunCommand("autoconf", "--version")
+	err := p.ExecuteExternal("autoconf", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
 		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
 	}
+
+	err = p.ExecuteExternal("automake", "--version")
+
+	if err != nil {
+		p.SetEnabled(false)
+		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
+	}
+
 	return nil
 }
 
+func RunAutogen(p *support.Plugin, params *support.BuildParams) error {
+	// path to the autogen script
+	autogen := filepath.Join(params.SourcePath, "autogen.sh")
 
-func MakeBuild(p *plugin.Plugin) error {
+	_, err := os.Stat(autogen)
+
+	// if doesn't exist we don't know how to build
+	if err != nil && os.IsNotExist(err) {
+		return errors.New(fmt.Sprint("Don't know how to build ", params.Package, "... no autotools configuration found."))
+	}
+
+	// go to the build path
+	err = os.Chdir(params.SourcePath)
+
+	if err != nil {
+		return err
+	}
+
+	// run the autogen script
+	return p.ExecuteExternal(autogen, params.BuildOpts, params.SourcePath)
+}
+
+func MakeBuild(p *support.Plugin) error {
 
 	params, err := p.ReadBuild()
 
@@ -28,43 +58,23 @@ func MakeBuild(p *plugin.Plugin) error {
 	}
 
 	// path to the configure script
-	configure := fmt.Sprint(params.BuildPath, "/configure")
+	configure := filepath.Join(params.SourcePath, "configure")
 
 	_, err = os.Stat(configure)
 
 	// if configure script doesn't exist...
 	if err != nil && os.IsNotExist(err) {
 
-		// path to the autogen script
-		autogen := fmt.Sprint(params.SourcePath, "/autogen.sh")
-
-		_, err = os.Stat(autogen)
-
-		// if doesn't exist we don't know how to build
-		if err != nil && os.IsNotExist(err) {
-			return errors.New(fmt.Sprint("Don't know how to build ", params.Package, "... no autotools configuration found."))
-		}
-
-		// change to the source path
-		err = os.Chdir(params.SourcePath)
+		err = RunAutogen(p, params)
 
 		if err != nil {
 			return err
 		}
 
-		// run the autogen script
-		err = p.RunCommand(autogen)
-
-		if err != nil {
-			return err
-		}
-
-		// test the configure script again
 		_, err = os.Stat(configure)
 
-		// it should exist now
 		if err != nil && os.IsNotExist(err) {
-			return errors.New(fmt.Sprint("Could not generate a configure script for ", params.Package))
+			return errors.New("Unable to generate configure script for build")
 		}
 	}
 
@@ -76,17 +86,22 @@ func MakeBuild(p *plugin.Plugin) error {
 	}
 
 	// and execute the configure script
-	return p.RunCommand(configure, fmt.Sprint("--prefix=", params.InstallPath), params.BuildOpts)
+	return p.ExecuteExternal(configure, fmt.Sprint("--prefix=", params.InstallPath), params.BuildOpts, params.SourcePath)
 }
 
-func main() {
+func NewAutotoolsPlugin() *support.Plugin {
 
-	p := plugin.NewPlugin("autotools")
+	p := support.NewPlugin("autotools")
 
 	p.OnLoad = Load
 	p.OnBuild = MakeBuild
 
-	err := p.Execute()
+	return p
+}
+
+func main() {
+
+	err := NewAutotoolsPlugin().Execute()
 
 	if err != nil {
 		fmt.Println(err)

@@ -1,14 +1,15 @@
 package main
 
 import (
-	"os"
-	"github.com/ryjen/prep-plugins/support"
 	"fmt"
+	"github.com/ryjen/prep-plugins/support"
+	"os"
+	"path/filepath"
 )
 
-func Load(p *plugin.Plugin) error {
+func Load(p *support.Plugin) error {
 
-	err := p.RunCommand("make", "--version")
+	err := p.ExecuteExternal("make", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -17,7 +18,7 @@ func Load(p *plugin.Plugin) error {
 	return nil
 }
 
-func MakeBuild(p *plugin.Plugin) error {
+func MakeBuild(p *support.Plugin) error {
 
 	params, err := p.ReadBuild()
 
@@ -25,19 +26,24 @@ func MakeBuild(p *plugin.Plugin) error {
 		return err
 	}
 
-    os.Chdir(params.BuildPath)
+	os.Chdir(params.BuildPath)
 
-    return p.RunCommand("make", "-j2", "install")
+	return p.ExecuteExternal("make", "-f", filepath.Join(params.SourcePath, "Makefile"), "-I", params.SourcePath, "install")
 }
 
-func main() {
-	
-	p := plugin.NewPlugin("make")
+func NewMakePlugin() *support.Plugin {
+
+	p := support.NewPlugin("make")
 
 	p.OnLoad = Load
 	p.OnBuild = MakeBuild
 
-	err := p.Execute()
+	return p
+}
+
+func main() {
+
+	err := NewMakePlugin().Execute()
 
 	if err != nil {
 		fmt.Println(err)

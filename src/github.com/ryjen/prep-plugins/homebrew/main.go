@@ -1,14 +1,14 @@
 package main
 
 import (
-	"os"
-	"github.com/ryjen/prep-plugins/support"
 	"fmt"
+	"github.com/ryjen/prep-plugins/support"
+	"os"
 )
 
-func Load(p *plugin.Plugin) error {
+func Load(p *support.Plugin) error {
 
-	err := p.RunCommand("brew", "--version")
+	err := p.ExecuteExternal("brew", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -17,7 +17,7 @@ func Load(p *plugin.Plugin) error {
 	return nil
 }
 
-func Install(p *plugin.Plugin) error {
+func Install(p *support.Plugin) error {
 
 	params, err := p.ReadInstall()
 
@@ -25,22 +25,22 @@ func Install(p *plugin.Plugin) error {
 		return err
 	}
 
-	return p.RunCommand("brew", "install", params.Package)
+	return p.ExecuteExternal("brew", "install", params.Package)
 }
 
-func Remove(p *plugin.Plugin) error {
+func Remove(p *support.Plugin) error {
 	params, err := p.ReadInstall()
 
 	if err != nil {
 		return err
 	}
 
-	return p.RunCommand("brew", "uninstall", params.Package)
+	return p.ExecuteExternal("brew", "uninstall", params.Package)
 }
 
 func main() {
 
-	p := plugin.NewPlugin("make")
+	p := support.NewPlugin("make")
 
 	p.OnLoad = Load
 	p.OnInstall = Install

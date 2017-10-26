@@ -1,12 +1,16 @@
-package plugin
+package support
 
 import (
     "bufio"
-    "os"
-    "strings"
-    "fmt"
     "errors"
+    "fmt"
+    "io"
+    "io/ioutil"
+    "net/http"
+    "os"
     "os/exec"
+    "path/filepath"
+    "strings"
 )
 
 type Hook func(*Plugin) error
@@ -15,13 +19,15 @@ type Hook func(*Plugin) error
  * the plugin type with hook callbacks
  */
 type Plugin struct {
-    Name string
-    OnLoad Hook
-    OnUnload Hook
-    OnBuild Hook
+    Name      string
+    OnLoad    Hook
+    OnUnload  Hook
+    OnBuild   Hook
     OnInstall Hook
-    OnRemove Hook
+    OnRemove  Hook
     OnResolve Hook
+    Input     io.Reader
+    Output    io.Writer
 }
 
 /**
@@ -32,18 +38,18 @@ type PackageParams struct {
     Version string
 }
 
-/** 
+/**
  * build hook parameters
  */
 type BuildParams struct {
     PackageParams
-    SourcePath string
-    BuildPath string
+    SourcePath  string
+    BuildPath   string
     InstallPath string
-    BuildOpts string
+    BuildOpts   string
 }
 
-/** 
+/**
  * install/remove hook parameters
  */
 type InstallParams struct {
@@ -55,11 +61,11 @@ type InstallParams struct {
  * resolve hook params
  */
 type ResolverParams struct {
-    Path string
+    Path     string
     Location string
 }
 
-/** 
+/**
  * creates a new plugin with no-op callbacks
  */
 func NewPlugin(name string) *Plugin {
@@ -67,8 +73,8 @@ func NewPlugin(name string) *Plugin {
         return nil
     }
 
-    return &Plugin{name, noop, noop,noop,
-    noop, noop, noop }
+    return &Plugin{name, noop, noop, noop,
+        noop, noop, noop, os.Stdin, os.Stdout}
 }
 
 /**
@@ -112,7 +118,6 @@ func (p *Plugin) Lookup(key string) string {
     return os.Getenv(p.keyName(key))
 }
 
-
 func (p *Plugin) SetEnabled(value bool) error {
     if value {
         return p.Save("enabled", "yes")
@@ -130,7 +135,7 @@ func (p *Plugin) IsEnabled() bool {
  */
 func (p *Plugin) Read() (string, error) {
 
-    reader := bufio.NewReader(os.Stdin)
+    reader := bufio.NewReader(p.Input)
     text, err := reader.ReadString('\n')
 
     return strings.TrimSpace(text), err
@@ -269,7 +274,7 @@ func (p *Plugin) ReadResolver() (*ResolverParams, error) {
  * write a return value
  */
 func (p *Plugin) WriteReturn(value string) error {
-    _, err := fmt.Println("RETURN ", value)
+    _, err := fmt.Fprintln(p.Output, "RETURN ", value)
     return err
 }
 
@@ -277,14 +282,14 @@ func (p *Plugin) WriteReturn(value string) error {
  * write an echo message
  */
 func (p *Plugin) WriteEcho(value string) error {
-    _, err := fmt.Println("ECHO ", value)
+    _, err := fmt.Fprintln(p.Output,"ECHO ", value)
     return err
 }
 
 /**
  * reads an input hook, and executes
  */
-func  (p *Plugin) Execute() error {
+func (p *Plugin) Execute() error {
     if !p.IsEnabled() {
         return nil
     }
@@ -292,6 +297,9 @@ func  (p *Plugin) Execute() error {
     command, err := p.Read()
 
     if err != nil {
+        if err == io.EOF {
+            return nil
+        }
         return err
     }
 
@@ -309,14 +317,151 @@ func  (p *Plugin) Execute() error {
     case "UNLOAD":
         return p.OnUnload(p)
     default:
-        return errors.New("unknown plugin hook")
+        return errors.New(fmt.Sprint("unknown plugin hook ", command))
     }
 }
 
-func (p *Plugin) RunCommand(name string, args ...string) error {
+func (plugin *Plugin) ExecutePipe(header []string) error {
+
+    reader, writer := io.Pipe()
+
+    defer reader.Close()
+
+    // set the plugin input to our pipe
+    plugin.Input = reader
+
+    handler := make(chan error)
+
+    go func() {
+        defer writer.Close()
+
+        for _, data := range header {
+
+            if _, err := writer.Write([]byte(data)); err != nil {
+                handler <- err
+                return
+            }
+        }
+
+        close(handler)
+    }()
+
+    err := plugin.Execute()
+
+    if err != nil {
+        return err
+    }
+
+    return <-handler
+}
+
+func (p *Plugin) ExecuteExternal(name string, args ...string) error {
     cmd := exec.Command(name, args...)
     cmd.Stdout = os.Stdout
     cmd.Stdin = os.Stdin
     cmd.Stderr = os.Stderr
     return cmd.Run()
+}
+
+
+/**
+ * build parameters for testing
+ */
+type TestBuildParams struct {
+    BuildParams
+    RootPath string
+}
+
+/**
+ * creates parameters for testing build plugins.
+ * It is up to the test to remove the temporary RootPath
+ */
+func CreateTestBuild() (*TestBuildParams, error) {
+
+    params := &TestBuildParams{}
+
+    var err error = nil
+
+    params.RootPath, err = ioutil.TempDir(os.TempDir(), filepath.Base(os.TempDir()))
+
+    if err != nil {
+        return nil, err
+    }
+
+    params.SourcePath = filepath.Join(params.RootPath, "source")
+
+    err = os.MkdirAll(params.SourcePath, os.FileMode(0700))
+
+    if err != nil {
+        return nil, err
+    }
+
+    params.BuildPath = filepath.Join(params.RootPath, "build")
+
+    err = os.MkdirAll(params.BuildPath, os.FileMode(0700))
+
+    if err != nil {
+        return nil, err
+    }
+
+    params.InstallPath = filepath.Join(params.RootPath, "install")
+
+    err = os.MkdirAll(params.InstallPath, os.FileMode(0700))
+
+    if err != nil {
+        return nil, err
+    }
+
+    return params, nil
+}
+
+func Copy(src, dst string) (int64, error) {
+
+    // stat the source file
+    stat, err := os.Stat(src)
+
+    var srcReader io.ReadCloser
+
+    // source is not a file?
+    if err != nil && os.IsNotExist(err) {
+
+        // try a url
+        resp, err := http.Get(src)
+
+        if err != nil {
+            return 0, fmt.Errorf("%s is not a regular file or url", src)
+        }
+
+        srcReader = resp.Body
+
+
+    } else if stat.Mode().IsRegular() {
+
+        // check to copy the file name if not specified
+        stat, err = os.Stat(dst)
+        if stat != nil && stat.Mode().IsDir() {
+            dst = filepath.Join(dst, filepath.Base(src))
+        }
+
+        // open the source file
+        srcReader, err = os.Open(src)
+        if err != nil {
+            return 0, err
+        }
+    } else {
+        // possibly a dir
+        return 0, err
+    }
+
+    defer srcReader.Close()
+
+    destFile, err := os.Create(dst)
+
+    if err != nil {
+        return 0, err
+    }
+
+    defer destFile.Close()
+
+    return io.Copy(destFile, srcReader)
 }

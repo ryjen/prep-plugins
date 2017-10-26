@@ -12,3 +12,11 @@ add_go_executable(TARGET ${PLUGIN_NAME} NAME ${BINARY_NAME} SOURCE_FILES ${SOURC
 add_dependencies(${PLUGIN_NAME} git2go)
 
 add_plugin(TARGET ${PLUGIN_NAME} EXECUTABLE ${BINARY_NAME})
+
+# setup test
+set(TEST_NAME ${PLUGIN_NAME}-test)
+
+add_test(NAME ${TEST_NAME}
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+            COMMAND ${GOSHIM} test -data ${TEST_DATA_PATH})
+
