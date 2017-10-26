@@ -44,7 +44,7 @@ func TestArchive(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	
+
 	n, err := fmt.Sscanf(buffer.String(), "RETURN %s", &path)
 
 	if err != nil || n != 1{
