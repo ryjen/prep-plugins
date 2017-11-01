@@ -31,6 +31,18 @@ func Resolve(p *support.Plugin) error {
 		return err
 	}
 
+	err = os.Chdir(params.Path)
+
+	if err != nil {
+		return err
+	}
+
+	err = p.ExecuteExternal("git", "submodule", "update", "--init", "--recursive")
+
+	if err != nil {
+		return err
+	}
+
 	return p.WriteReturn(params.Path)
 }
 
