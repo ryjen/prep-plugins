@@ -11,6 +11,7 @@ import (
     "os/exec"
     "path/filepath"
     "strings"
+    "syscall"
 )
 
 type Hook func(*Plugin) error
@@ -23,7 +24,9 @@ type Plugin struct {
     OnLoad    Hook
     OnUnload  Hook
     OnBuild   Hook
+    OnTest    Hook
     OnInstall Hook
+    OnAdd     Hook
     OnRemove  Hook
     OnResolve Hook
     Input     io.Reader
@@ -49,10 +52,16 @@ type BuildParams struct {
     BuildOpts   string
 }
 
+type BuiltParams struct {
+    PackageParams
+    SourcePath  string
+    BuildPath string
+}
+
 /**
- * install/remove hook parameters
+ * add/remove hook parameters
  */
-type InstallParams struct {
+type AddRemoveParams struct {
     PackageParams
     Repository string
 }
@@ -74,28 +83,7 @@ func NewPlugin(name string) *Plugin {
     }
 
     return &Plugin{name, noop, noop, noop,
-        noop, noop, noop, os.Stdin, os.Stdout}
-}
-
-/**
- * creates new build hook parameters
- */
-func NewBuildParams() *BuildParams {
-    return new(BuildParams)
-}
-
-/**
- * creates new install hook parameters
- */
-func NewInstallParams() *InstallParams {
-    return &InstallParams{}
-}
-
-/**
- * creates new resolve hook parameters
- */
-func NewResolverParams() *ResolverParams {
-    return &ResolverParams{}
+        noop, noop, noop, noop, noop, os.Stdin, os.Stdout}
 }
 
 func (p *Plugin) keyName(key string) string {
@@ -147,10 +135,11 @@ func (p *Plugin) Read() (string, error) {
 func (p *Plugin) ReadEnvVars() error {
     line, err := p.Read()
 
+    if err != nil {
+        return err
+    }
+
     for !strings.EqualFold(line, "END") {
-        if err != nil {
-            return err
-        }
 
         env := strings.Split(line, "=")
 
@@ -159,6 +148,10 @@ func (p *Plugin) ReadEnvVars() error {
         }
 
         line, err = p.Read()
+
+        if err != nil {
+            return err
+        }
     }
 
     return err
@@ -169,7 +162,7 @@ func (p *Plugin) ReadEnvVars() error {
  */
 func (p *Plugin) ReadBuild() (*BuildParams, error) {
 
-    params := NewBuildParams()
+    params := new(BuildParams)
 
     var err error
 
@@ -202,8 +195,46 @@ func (p *Plugin) ReadBuild() (*BuildParams, error) {
     if err != nil {
         return params, err
     }
-
     params.BuildOpts, err = p.Read()
+
+    if err != nil {
+        return params, err
+    }
+
+    err = p.ReadEnvVars()
+
+    return params, err
+}
+
+
+/**
+ * read build hook parameters
+ */
+func (p *Plugin) ReadBuilt() (*BuiltParams, error) {
+
+    params := new(BuiltParams)
+
+    var err error
+
+    params.Package, err = p.Read()
+
+    if err != nil {
+        return params, err
+    }
+
+    params.Version, err = p.Read()
+
+    if err != nil {
+        return params, err
+    }
+
+    params.SourcePath, err = p.Read()
+
+    if err != nil {
+        return params, err
+    }
+
+    params.BuildPath, err = p.Read()
 
     if err != nil {
         return params, err
@@ -217,8 +248,8 @@ func (p *Plugin) ReadBuild() (*BuildParams, error) {
 /**
  * read install hook parameters
  */
-func (p *Plugin) ReadInstall() (*InstallParams, error) {
-    params := NewInstallParams()
+func (p *Plugin) ReadAddRemove() (*AddRemoveParams, error) {
+    params := new(AddRemoveParams)
 
     var err error
 
@@ -249,7 +280,7 @@ func (p *Plugin) ReadInstall() (*InstallParams, error) {
  * read resolver hook parameters
  */
 func (p *Plugin) ReadResolver() (*ResolverParams, error) {
-    params := NewResolverParams()
+    params := new(ResolverParams)
 
     var err error
 
@@ -306,12 +337,16 @@ func (p *Plugin) Execute() error {
     switch strings.ToUpper(command) {
     case "LOAD":
         return p.OnLoad(p)
-    case "INSTALL":
-        return p.OnInstall(p)
+    case "ADD":
+        return p.OnAdd(p)
     case "REMOVE":
         return p.OnRemove(p)
     case "BUILD":
         return p.OnBuild(p)
+    case "TEST":
+        return p.OnTest(p)
+    case "INSTALL":
+        return p.OnInstall(p)
     case "RESOLVE":
         return p.OnResolve(p)
     case "UNLOAD":
@@ -363,12 +398,33 @@ func (p *Plugin) ExecuteExternal(name string, args ...string) error {
     return cmd.Run()
 }
 
+func (p *Plugin) ExecuteOutput(name string, args ...string) (string, error) {
+    cmd := exec.Command(name, args...)
+
+    b, err := cmd.Output()
+
+    if err != nil {
+        return "", err
+    }
+
+    return string(b), nil
+}
+
+func GetErrorCode(err error) int {
+    // try to get the exit code
+    if exitError, ok := err.(*exec.ExitError); ok {
+        ws := exitError.Sys().(syscall.WaitStatus)
+        return ws.ExitStatus()
+    }
+    return -1
+}
 
 /**
  * build parameters for testing
  */
 type TestBuildParams struct {
     BuildParams
+    InstallPath string
     RootPath string
 }
 
@@ -416,6 +472,10 @@ func CreateTestBuild() (*TestBuildParams, error) {
 }
 
 func Copy(src, dst string) (int64, error) {
+
+    if len(src) == 0 || len(dst) == 0 {
+        return 0, nil
+    }
 
     // stat the source file
     stat, err := os.Stat(src)

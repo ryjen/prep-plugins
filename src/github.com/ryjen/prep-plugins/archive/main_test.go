@@ -23,7 +23,7 @@ func TestArchive(t *testing.T) {
 		return
 	}
 
-	//defer os.RemoveAll(path)
+	defer os.RemoveAll(path)
 
 	var archiveFile = filepath.Join(*TEST_DATA, "archive", "test-0.1.0.tar.gz")
 

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"mime"
+	"errors"
 )
 
 type FileVersionInfo struct {
@@ -66,6 +67,10 @@ func parseFileAndVerionFromPath(path string) (*FileVersionInfo, error) {
 func Resolve(p *support.Plugin) error {
 
 	params, err := p.ReadResolver()
+
+    if len(params.Location) == 0 || len(params.Path) == 0 {
+        return errors.New("invalid parameter")
+    }
 
 	if err != nil {
 		return err

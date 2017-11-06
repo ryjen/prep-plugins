@@ -38,6 +38,7 @@ func TestCmake(t *testing.T) {
 		fmt.Sprintln(params.BuildPath),
 		fmt.Sprintln(params.InstallPath),
 		fmt.Sprintln(params.BuildOpts),
+		"TEST_ENV=true\n",
 		"END\n",
 	}
 
@@ -58,6 +59,11 @@ func TestCmake(t *testing.T) {
 	if len(fileInfo) == 0 {
 		t.Error("Did not generates build in build path")
 		return
+	}
+
+	if os.Getenv("TEST_ENV") != "true" {
+	    t.Error("Did not set environment variable")
+	    return
 	}
 
 	// TODO: archive specific checks

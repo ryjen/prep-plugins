@@ -17,19 +17,25 @@ func Load(p *support.Plugin) error {
 	return nil
 }
 
-func Install(p *support.Plugin) error {
+func Add(p *support.Plugin) error {
 
-	params, err := p.ReadInstall()
+	params, err := p.ReadAddRemove()
 
 	if err != nil {
 		return err
 	}
 
-	return p.ExecuteExternal("brew", "install", params.Package)
+	err = p.ExecuteExternal("brew", "desc", params.Package)
+
+	if err == nil {
+	    err = p.ExecuteExternal("brew", "install", params.Package)
+	}
+
+	return err
 }
 
 func Remove(p *support.Plugin) error {
-	params, err := p.ReadInstall()
+	params, err := p.ReadAddRemove()
 
 	if err != nil {
 		return err
@@ -43,7 +49,7 @@ func main() {
 	p := support.NewPlugin("make")
 
 	p.OnLoad = Load
-	p.OnInstall = Install
+	p.OnAdd = Add
 	p.OnRemove = Remove
 
 	err := p.Execute()
