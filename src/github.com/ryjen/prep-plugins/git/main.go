@@ -43,16 +43,10 @@ func Resolve(p *support.Plugin) error {
 
         origin, err := p.ExecuteOutput("git", "remote", "get-url", "origin")
 
-        if err != nil {
-            return err
-        }
-
-        if strings.TrimSpace(origin) == params.Location {
+        if err != nil && strings.TrimSpace(origin) == params.Location {
             return p.WriteReturn(params.Path)
         }
     }
-
-	fmt.Println("Cloning ", params.Location, " to ", params.Path)
 
 	err = p.ExecuteExternal("git", "clone", params.Location, params.Path)
 

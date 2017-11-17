@@ -5,11 +5,7 @@ set(BINARY_NAME main)
 
 get_filename_component(PLUGIN_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 
-external_go_project(TARGET git2go PACKAGE "gopkg.in/libgit2/git2go.v26")
-
 add_go_executable(TARGET ${PLUGIN_NAME} NAME ${BINARY_NAME} SOURCE_FILES ${SOURCE_FILES})
-
-add_dependencies(${PLUGIN_NAME} git2go)
 
 add_plugin(TARGET ${PLUGIN_NAME} EXECUTABLE ${BINARY_NAME})
 
