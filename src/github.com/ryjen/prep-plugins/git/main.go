@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/ryjen/prep-plugins/support"
 	"os"
+	"errors"
+	"strings"
 )
 
 func Load(p *support.Plugin) error {
@@ -25,7 +27,40 @@ func Resolve(p *support.Plugin) error {
 		return err
 	}
 
+	if len(params.Location) == 0 || len(params.Path) == 0 {
+	    return errors.New("invalid parameter")
+	}
+
+	stat, err := os.Stat(params.Path)
+
+	if stat != nil && stat.IsDir() {
+
+        err = os.Chdir(params.Path)
+
+        if err != nil {
+            return err
+        }
+
+        origin, err := p.ExecuteOutput("git", "remote", "get-url", "origin")
+
+        if err != nil && strings.TrimSpace(origin) == params.Location {
+            return p.WriteReturn(params.Path)
+        }
+    }
+
 	err = p.ExecuteExternal("git", "clone", params.Location, params.Path)
+
+	if err != nil {
+		return err
+	}
+
+	err = os.Chdir(params.Path)
+
+	if err != nil {
+		return err
+	}
+
+	err = p.ExecuteExternal("git", "submodule", "update", "--init", "--recursive")
 
 	if err != nil {
 		return err

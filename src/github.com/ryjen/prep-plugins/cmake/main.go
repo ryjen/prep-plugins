@@ -27,7 +27,9 @@ func MakeBuild(p *support.Plugin) error {
 
 	os.Chdir(params.BuildPath)
 
-	return p.ExecuteExternal("cmake", fmt.Sprint("-DCMAKE_INSTALL_PREFIX=", params.InstallPath), params.BuildOpts, params.SourcePath)
+	return p.ExecuteExternal("cmake", fmt.Sprint("-DCMAKE_INSTALL_PREFIX=", params.InstallPath), params.BuildOpts,
+	    fmt.Sprint("-DCMAKE_CXX_FLAGS=", os.Getenv("CXXFLAGS")),
+	    params.SourcePath)
 }
 
 func NewCmakePlugin() *support.Plugin {

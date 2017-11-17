@@ -1,6 +1,3 @@
 [submodule "cmake"]
 	path = cmake
 	url = git@github.com:ryjen/cmake.git
-[submodule "git-plugin-test"]
-	path = tests/data/git
-	url = file://../tests/data/git

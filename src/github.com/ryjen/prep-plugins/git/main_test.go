@@ -12,7 +12,7 @@ import (
 
 var TEST_DATA = flag.String("data", "", "dir of the test data")
 
-func TestArchive(t *testing.T) {
+func TestGit(t *testing.T) {
 
 	p := NewGitPlugin()
 
@@ -23,7 +23,7 @@ func TestArchive(t *testing.T) {
 		return
 	}
 
-//	defer os.RemoveAll(path)
+	// defer os.RemoveAll(path)
 
 	var repoPath = filepath.Join(*TEST_DATA, "git")
 
@@ -47,12 +47,12 @@ func TestArchive(t *testing.T) {
 
 	n, err := fmt.Sscanf(buffer.String(), "RETURN %s", &path)
 
-	if err != nil || n != 1{
+	if err != nil || n != 1 {
 		t.Error("no return value from plugin")
 		return
 	}
 
-	_, err = os.Stat(filepath.Join(path, "README"))
+	_, err = os.Stat(filepath.Join(path, "README.md"))
 
 	if err != nil {
 		t.Error(err)
