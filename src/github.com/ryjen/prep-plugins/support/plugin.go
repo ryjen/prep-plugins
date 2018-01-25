@@ -305,7 +305,7 @@ func (p *Plugin) ReadResolver() (*ResolverParams, error) {
  * write a return value
  */
 func (p *Plugin) WriteReturn(value string) error {
-    _, err := fmt.Fprintln(p.Output, "RETURN ", value)
+    _, err := fmt.Fprintln(p.Output, "RETURN", value)
     return err
 }
 
@@ -313,7 +313,7 @@ func (p *Plugin) WriteReturn(value string) error {
  * write an echo message
  */
 func (p *Plugin) WriteEcho(value string) error {
-    _, err := fmt.Fprintln(p.Output,"ECHO ", value)
+    _, err := fmt.Fprintln(p.Output,"ECHO", value)
     return err
 }
 

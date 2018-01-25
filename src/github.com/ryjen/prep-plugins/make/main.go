@@ -98,7 +98,6 @@ func main() {
 	err := NewMakePlugin().Execute()
 
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 

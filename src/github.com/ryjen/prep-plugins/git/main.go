@@ -19,6 +19,52 @@ func Load(p *support.Plugin) error {
 	return nil
 }
 
+func IsGitError(err error) bool {
+    return err != nil && support.GetErrorCode(err) == 128
+}
+
+func ResolveExisting(p *support.Plugin, params *support.ResolverParams, branch string) error {
+
+     err := os.Chdir(params.Path)
+
+     if err != nil {
+        return err
+     }
+
+    origin, err := p.ExecuteOutput("git", "remote", "get-url", "origin")
+
+    if err != nil {
+        fmt.Println("git remote get-url error")
+        return err
+    }
+
+    if strings.TrimSpace(origin) != params.Location {
+        return errors.New(fmt.Sprintln(err, "Unknown origin", origin, "for", params.Location))
+    }
+
+    curr, err := p.ExecuteOutput("git", "rev-parse", "--abbrev-ref", "HEAD")
+
+    if err != nil {
+        return err
+    }
+
+    if strings.TrimSpace(curr) != branch {
+        err = p.ExecuteExternal("git", "checkout", branch)
+
+        if err != nil {
+            return err
+        }
+    }
+
+    err = p.ExecuteExternal("git", "pull", "-q", "origin", branch)
+
+    if err != nil && !IsGitError(err) {
+        return err
+    }
+
+    return nil
+}
+
 func Resolve(p *support.Plugin) error {
 
 	params, err := p.ReadResolver()
@@ -31,36 +77,39 @@ func Resolve(p *support.Plugin) error {
 	    return errors.New("invalid parameter")
 	}
 
-	stat, err := os.Stat(params.Path)
+    branch := "master"
 
-	if stat != nil && stat.IsDir() {
+    extra := strings.Split(params.Location, "#")
 
-        err = os.Chdir(params.Path)
-
-        if err != nil {
-            return err
-        }
-
-        origin, err := p.ExecuteOutput("git", "remote", "get-url", "origin")
-
-        if err != nil && strings.TrimSpace(origin) == params.Location {
-            return p.WriteReturn(params.Path)
-        }
+    if len(extra) > 1 {
+        branch = extra[1]
+        params.Location = extra[0]
     }
 
-	err = p.ExecuteExternal("git", "clone", params.Location, params.Path)
+     err = p.ExecuteExternal("git", "clone", "-q", params.Location, "-b", branch, "--single-branch", params.Path)
 
-	if err != nil {
-		return err
-	}
+     if err != nil {
 
-	err = os.Chdir(params.Path)
+        if IsGitError(err) {
+            err = ResolveExisting(p, params, branch)
 
-	if err != nil {
-		return err
-	}
+            if err != nil {
+                return err
+            }
 
-	err = p.ExecuteExternal("git", "submodule", "update", "--init", "--recursive")
+        } else {
+            return err
+        }
+     } else {
+
+            err = os.Chdir(params.Path)
+
+            if err != nil {
+                return err
+            }
+    }
+
+	err = p.ExecuteExternal("git", "submodule", "-q", "update", "--init", "--recursive")
 
 	if err != nil {
 		return err
@@ -84,7 +133,6 @@ func main() {
 	err := NewGitPlugin().Execute()
 
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 

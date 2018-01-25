@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/mholt/archiver"
 	"github.com/ryjen/prep-plugins/support"
 	"os"
@@ -129,7 +128,6 @@ func main() {
 	err := NewArchivePlugin().Execute()
 
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 

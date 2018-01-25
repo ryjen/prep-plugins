@@ -15,13 +15,13 @@ func Load(p *support.Plugin) error {
 	if err != nil {
 		p.SetEnabled(false)
 		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
-	}
+	} else {
+        err = p.ExecuteExternal("automake", "--version")
 
-	err = p.ExecuteExternal("automake", "--version")
-
-	if err != nil {
-		p.SetEnabled(false)
-		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
+        if err != nil {
+            p.SetEnabled(false)
+            p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
+        }
 	}
 
 	return nil
@@ -104,7 +104,6 @@ func main() {
 	err := NewAutotoolsPlugin().Execute()
 
 	if err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 
