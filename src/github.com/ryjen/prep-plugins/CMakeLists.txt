@@ -34,6 +34,8 @@ function(add_plugin)
 
 endfunction()
 
+# standard plugins
+
 add_subdirectory(support)
 
 add_subdirectory(make)
@@ -47,6 +49,8 @@ add_subdirectory(git)
 add_subdirectory(homebrew)
 
 add_subdirectory(archive)
+
+# plugin dependencies
 
 add_dependencies(make support)
 

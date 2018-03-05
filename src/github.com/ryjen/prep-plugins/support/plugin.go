@@ -1,6 +1,8 @@
+
 package support
 
 import (
+    "C"
     "bufio"
     "errors"
     "fmt"
@@ -471,6 +473,7 @@ func CreateTestBuild() (*TestBuildParams, error) {
     return params, nil
 }
 
+// export copy
 func Copy(src, dst string) (int64, error) {
 
     if len(src) == 0 || len(dst) == 0 {
