@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ryjen/prep-plugins/support"
 	"os"
-	"errors"
 	"strings"
 )
 
@@ -20,49 +20,49 @@ func Load(p *support.Plugin) error {
 }
 
 func IsGitError(err error) bool {
-    return err != nil && support.GetErrorCode(err) == 128
+	return err != nil && support.GetErrorCode(err) == 128
 }
 
 func ResolveExisting(p *support.Plugin, params *support.ResolverParams, branch string) error {
 
-     err := os.Chdir(params.Path)
+	err := os.Chdir(params.Path)
 
-     if err != nil {
-        return err
-     }
+	if err != nil {
+		return err
+	}
 
-    origin, err := p.ExecuteOutput("git", "remote", "get-url", "origin")
+	origin, err := p.ExecuteOutput("git", "remote", "get-url", "origin")
 
-    if err != nil {
-        fmt.Println("git remote get-url error")
-        return err
-    }
+	if err != nil {
+		fmt.Println("git remote get-url error")
+		return err
+	}
 
-    if strings.TrimSpace(origin) != params.Location {
-        return errors.New(fmt.Sprintln(err, "Unknown origin", origin, "for", params.Location))
-    }
+	if strings.TrimSpace(origin) != params.Location {
+		return errors.New(fmt.Sprintln(err, "Unknown origin", origin, "for", params.Location))
+	}
 
-    curr, err := p.ExecuteOutput("git", "rev-parse", "--abbrev-ref", "HEAD")
+	curr, err := p.ExecuteOutput("git", "rev-parse", "--abbrev-ref", "HEAD")
 
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    if strings.TrimSpace(curr) != branch {
-        err = p.ExecuteExternal("git", "checkout", branch)
+	if strings.TrimSpace(curr) != branch {
+		err = p.ExecuteExternal("git", "checkout", branch)
 
-        if err != nil {
-            return err
-        }
-    }
+		if err != nil {
+			return err
+		}
+	}
 
-    err = p.ExecuteExternal("git", "pull", "-q", "origin", branch)
+	err = p.ExecuteExternal("git", "pull", "-q", "origin", branch)
 
-    if err != nil && !IsGitError(err) {
-        return err
-    }
+	if err != nil && !IsGitError(err) {
+		return err
+	}
 
-    return nil
+	return nil
 }
 
 func Resolve(p *support.Plugin) error {
@@ -74,40 +74,44 @@ func Resolve(p *support.Plugin) error {
 	}
 
 	if len(params.Location) == 0 || len(params.Path) == 0 {
-	    return errors.New("invalid parameter")
+		return errors.New("invalid parameter")
 	}
 
-    branch := "master"
+	branch := "master"
 
-    extra := strings.Split(params.Location, "#")
+	extra := strings.Split(params.Location, "#")
 
-    if len(extra) > 1 {
-        branch = extra[1]
-        params.Location = extra[0]
-    }
+	if len(extra) > 1 {
+		branch = extra[1]
+		params.Location = extra[0]
+	}
 
-     err = p.ExecuteExternal("git", "clone", "-q", params.Location, "-b", branch, "--single-branch", params.Path)
+	p.WriteEcho("Cloning " + params.Location + "#" + branch)
 
-     if err != nil {
+	err = p.ExecuteExternal("git", "clone", "-q", params.Location, "-b", branch, "--single-branch", params.Path)
 
-        if IsGitError(err) {
-            err = ResolveExisting(p, params, branch)
+	if err != nil {
 
-            if err != nil {
-                return err
-            }
+		if IsGitError(err) {
+			err = ResolveExisting(p, params, branch)
 
-        } else {
-            return err
-        }
-     } else {
+			if err != nil {
+				return err
+			}
 
-            err = os.Chdir(params.Path)
+		} else {
+			return err
+		}
+	} else {
 
-            if err != nil {
-                return err
-            }
-    }
+		err = os.Chdir(params.Path)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	p.WriteEcho("Updating submodules")
 
 	err = p.ExecuteExternal("git", "submodule", "-q", "update", "--init", "--recursive")
 
