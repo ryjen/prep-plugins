@@ -30,7 +30,7 @@ function(add_plugin)
     endif()
 
     add_custom_command(TARGET ${ADD_PLUGIN_TARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E copy ${ADD_PLUGIN_EXECUTABLE}
-            ${OUTPUT_FOLDER})
+        ${OUTPUT_FOLDER} BYPRODUCTS ${OUTPUT_FOLDER}/${ADD_PLUGIN_EXECUTABLE})
 
 endfunction()
 
