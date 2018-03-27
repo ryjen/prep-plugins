@@ -48,6 +48,8 @@ add_subdirectory(git)
 
 add_subdirectory(homebrew)
 
+add_subdirectory(apt)
+
 add_subdirectory(archive)
 
 # plugin dependencies
@@ -61,5 +63,7 @@ add_dependencies(autotools support)
 add_dependencies(git support)
 
 add_dependencies(homebrew support)
+
+add_dependencies(apt support)
 
 add_dependencies(archive support)

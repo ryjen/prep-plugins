@@ -8,7 +8,7 @@ import (
 
 func Load(p *support.Plugin) error {
 
-	err := p.ExecuteExternal("brew", "--version")
+	err := p.ExecuteExternal("apt-get", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -25,10 +25,10 @@ func Add(p *support.Plugin) error {
 		return err
 	}
 
-	err = p.ExecuteExternal("brew", "desc", params.Package)
+	err = p.ExecuteExternal("apt-cache", "show", params.Package)
 
 	if err == nil {
-	    err = p.ExecuteExternal("brew", "install", params.Package)
+	    err = p.ExecuteExternal("apt-get", "install", params.Package)
 	}
 
 	return err
@@ -41,12 +41,12 @@ func Remove(p *support.Plugin) error {
 		return err
 	}
 
-	return p.ExecuteExternal("brew", "uninstall", params.Package)
+	return p.ExecuteExternal("apt-get", "remove", params.Package)
 }
 
 func main() {
 
-	p := support.NewPlugin("homebrew")
+	p := support.NewPlugin("apt")
 
 	p.OnLoad = Load
 	p.OnAdd = Add

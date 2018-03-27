@@ -11,7 +11,7 @@ include(golang)
 
 enable_testing()
 
-set(PLUGINS support make cmake autotools git homebrew archive)
+set(PLUGINS support make cmake autotools git homebrew archive apt)
 
 add_custom_target(build_plugins ALL DEPENDS ${PLUGINS})
 
