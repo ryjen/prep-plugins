@@ -8,7 +8,7 @@ import (
 
 func Load(p *support.Plugin) error {
 
-	err := p.ExecuteExternal("apt-get", "--version")
+	err := p.ExecuteQuiet("apt-get", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -28,7 +28,7 @@ func Add(p *support.Plugin) error {
 	err = p.ExecuteExternal("apt-cache", "show", params.Package)
 
 	if err == nil {
-	    err = p.ExecuteExternal("apt-get", "install", params.Package)
+		err = p.ExecuteExternal("apt-get", "install", params.Package)
 	}
 
 	return err

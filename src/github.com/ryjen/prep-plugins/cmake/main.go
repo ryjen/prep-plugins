@@ -8,7 +8,7 @@ import (
 
 func Load(p *support.Plugin) error {
 
-	err := p.ExecuteExternal("cmake", "--version")
+	err := p.ExecuteQuiet("cmake", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -28,7 +28,7 @@ func MakeBuild(p *support.Plugin) error {
 	os.Chdir(params.BuildPath)
 
 	return p.ExecuteExternal("cmake", fmt.Sprint("-DCMAKE_INSTALL_PREFIX=", params.InstallPath), params.BuildOpts,
-	    params.SourcePath)
+		params.SourcePath)
 }
 
 func NewCmakePlugin() *support.Plugin {

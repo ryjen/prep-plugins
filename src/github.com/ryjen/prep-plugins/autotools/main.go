@@ -10,18 +10,18 @@ import (
 
 func Load(p *support.Plugin) error {
 
-	err := p.ExecuteExternal("autoconf", "--version")
+	err := p.ExecuteQuiet("autoconf", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
 		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
 	} else {
-        err = p.ExecuteExternal("automake", "--version")
+		err = p.ExecuteQuiet("automake", "--version")
 
-        if err != nil {
-            p.SetEnabled(false)
-            p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
-        }
+		if err != nil {
+			p.SetEnabled(false)
+			p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
+		}
 	}
 
 	return nil

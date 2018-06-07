@@ -9,7 +9,7 @@ import (
 
 func Load(p *support.Plugin) error {
 
-	err := p.ExecuteExternal("make", "--version")
+	err := p.ExecuteQuiet("make", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
@@ -23,26 +23,26 @@ func MakeBuildArg(p *support.Plugin, sourcePath string, buildPath string, arg st
 	err := os.Chdir(buildPath)
 
 	if err != nil {
-	    return err
+		return err
 	}
 
-    // try to make from build path first
+	// try to make from build path first
 	file := filepath.Join(buildPath, "Makefile")
 
 	_, err = os.Stat(file)
 
-    if len(arg) == 0 {
-        if err == nil {
-            err = p.ExecuteExternal("make", "-f", file, "-I", buildPath)
-        } else {
-            err = p.ExecuteExternal("make", "-f", filepath.Join(sourcePath, "Makefile"), "-I", sourcePath)
-        }
-    } else {
-        if err == nil {
-            err = p.ExecuteExternal("make", "-f", file, "-I", buildPath, arg)
-        } else {
-            err = p.ExecuteExternal("make", "-f", filepath.Join(sourcePath, "Makefile"), "-I", sourcePath, arg)
-        }
+	if len(arg) == 0 {
+		if err == nil {
+			err = p.ExecuteExternal("make", "-f", file, "-I", buildPath)
+		} else {
+			err = p.ExecuteExternal("make", "-f", filepath.Join(sourcePath, "Makefile"), "-I", sourcePath)
+		}
+	} else {
+		if err == nil {
+			err = p.ExecuteExternal("make", "-f", file, "-I", buildPath, arg)
+		} else {
+			err = p.ExecuteExternal("make", "-f", filepath.Join(sourcePath, "Makefile"), "-I", sourcePath, arg)
+		}
 	}
 
 	return err
@@ -56,7 +56,7 @@ func MakeBuild(p *support.Plugin) error {
 		return err
 	}
 
-    return MakeBuildArg(p, params.SourcePath, params.BuildPath, "")
+	return MakeBuildArg(p, params.SourcePath, params.BuildPath, "")
 }
 
 func MakeTest(p *support.Plugin) error {

@@ -10,7 +10,7 @@ import (
 
 func Load(p *support.Plugin) error {
 
-	err := p.ExecuteExternal("git", "--version")
+	err := p.ExecuteQuiet("git", "--version")
 
 	if err != nil {
 		p.SetEnabled(false)
