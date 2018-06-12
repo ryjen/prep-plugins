@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/ryjen/prep-plugins/support"
 	"os"
 	"path/filepath"
@@ -12,8 +11,7 @@ func Load(p *support.Plugin) error {
 	err := p.ExecuteQuiet("make", "--version")
 
 	if err != nil {
-		p.SetEnabled(false)
-		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
+		return support.NotFoundError(err)
 	}
 	return nil
 }
@@ -98,7 +96,7 @@ func main() {
 	err := NewMakePlugin().Execute()
 
 	if err != nil {
-		os.Exit(1)
+		os.Exit(support.ErrorCode(err))
 	}
 
 	os.Exit(0)

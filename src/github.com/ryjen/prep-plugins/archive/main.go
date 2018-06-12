@@ -128,7 +128,7 @@ func main() {
 	err := NewArchivePlugin().Execute()
 
 	if err != nil {
-		os.Exit(1)
+		os.Exit(support.ErrorCode(err))
 	}
 
 	os.Exit(0)

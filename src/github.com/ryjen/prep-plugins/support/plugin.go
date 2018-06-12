@@ -75,6 +75,36 @@ type ResolverParams struct {
 	Location string
 }
 
+type Error struct {
+    Code int
+    message string
+}
+
+func (e *Error) Error() string {
+    return e.message
+}
+
+func NotFoundError(err error) *Error {
+    return &Error {
+        Code: 127,
+        message: err.Error(),
+    }
+}
+
+func ErrorCode(e error) int {
+    if err, ok := e.(*Error); ok {
+        return err.Code
+    }
+
+    if err, ok := e.(*exec.ExitError); ok {
+        if ws, ok := err.Sys().(syscall.WaitStatus); ok {
+            return ws.ExitStatus()
+        }
+    }
+
+    return 1
+}
+
 /**
  * creates a new plugin with no-op callbacks
  */
@@ -85,38 +115,6 @@ func NewPlugin(name string) *Plugin {
 
 	return &Plugin{name, noop, noop, noop,
 		noop, noop, noop, noop, noop, os.Stdin, os.Stdout}
-}
-
-func (p *Plugin) keyName(key string) string {
-
-	keys := []string{"PREP", strings.ToUpper(p.Name), strings.ToUpper(key)}
-
-	return strings.Join(keys, "_")
-}
-
-/**
- * abstraction for plugin key/value storage
- * just uses environment variables for now
- */
-func (p *Plugin) Save(key string, value string) error {
-
-	return os.Setenv(p.keyName(key), value)
-}
-
-func (p *Plugin) Lookup(key string) string {
-	return os.Getenv(p.keyName(key))
-}
-
-func (p *Plugin) SetEnabled(value bool) error {
-	if value {
-		return p.Save("enabled", "yes")
-	} else {
-		return p.Save("enabled", "no")
-	}
-}
-
-func (p *Plugin) IsEnabled() bool {
-	return p.Lookup("enabled") != "no"
 }
 
 /**
@@ -321,9 +319,6 @@ func (p *Plugin) WriteEcho(value string) error {
  * reads an input hook, and executes
  */
 func (p *Plugin) Execute() error {
-	if !p.IsEnabled() {
-		return nil
-	}
 
 	command, err := p.Read()
 
@@ -414,15 +409,6 @@ func (p *Plugin) ExecuteOutput(name string, args ...string) (string, error) {
 	}
 
 	return string(b), nil
-}
-
-func GetErrorCode(err error) int {
-	// try to get the exit code
-	if exitError, ok := err.(*exec.ExitError); ok {
-		ws := exitError.Sys().(syscall.WaitStatus)
-		return ws.ExitStatus()
-	}
-	return -1
 }
 
 /**

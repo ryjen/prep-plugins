@@ -13,14 +13,13 @@ func Load(p *support.Plugin) error {
 	err := p.ExecuteQuiet("git", "--version")
 
 	if err != nil {
-		p.SetEnabled(false)
-		p.WriteEcho(fmt.Sprint(p.Name, " not available, plugin disabled"))
+		return support.NotFoundError(err)
 	}
 	return nil
 }
 
 func IsGitError(err error) bool {
-	return err != nil && support.GetErrorCode(err) == 128
+	return err != nil && support.ErrorCode(err) == 128
 }
 
 func ResolveExisting(p *support.Plugin, params *support.ResolverParams, branch string) error {
@@ -137,7 +136,7 @@ func main() {
 	err := NewGitPlugin().Execute()
 
 	if err != nil {
-		os.Exit(1)
+		os.Exit(support.ErrorCode(err))
 	}
 
 	os.Exit(0)
