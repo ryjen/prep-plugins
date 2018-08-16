@@ -10,7 +10,7 @@ func Load(p *support.Plugin) error {
 	err := p.ExecuteQuiet("apt-get", "--version")
 
 	if err != nil {
-		return support.NotFoundError(err);
+		return support.NotFoundError(err)
 	}
 	return nil
 }
@@ -23,13 +23,19 @@ func Add(p *support.Plugin) error {
 		return err
 	}
 
-	err = p.ExecuteExternal("apt-cache", "show", params.Package)
+	err = os.Chdir(os.TempDir())
 
-	if err == nil {
-		err = p.ExecuteExternal("apt-get", "install", params.Package)
+	if err != nil {
+		return err
 	}
 
-	return err
+	err = p.ExecuteExternal("apt-get", "download", params.Package)
+
+	if err != nil {
+		return err
+	}
+
+	return p.ExecuteExternal("dpkg", "--force-not-root", "--root=\""+params.Repository+"\"", "-i", params.Package+"*.deb")
 }
 
 func Remove(p *support.Plugin) error {
@@ -39,7 +45,13 @@ func Remove(p *support.Plugin) error {
 		return err
 	}
 
-	return p.ExecuteExternal("apt-get", "remove", params.Package)
+	err = os.Chdir(os.TempDir())
+
+	if err != nil {
+		return err
+	}
+
+	return p.ExecuteExternal("dpkg", "-i", params.Package+"*.deb", "--force-not-root", "--root=\""+params.Repository+"\"")
 }
 
 func main() {

@@ -76,33 +76,33 @@ type ResolverParams struct {
 }
 
 type Error struct {
-    Code int
-    message string
+	Code    int
+	message string
 }
 
 func (e *Error) Error() string {
-    return e.message
+	return e.message
 }
 
 func NotFoundError(err error) *Error {
-    return &Error {
-        Code: 127,
-        message: err.Error(),
-    }
+	return &Error{
+		Code:    127,
+		message: err.Error(),
+	}
 }
 
 func ErrorCode(e error) int {
-    if err, ok := e.(*Error); ok {
-        return err.Code
-    }
+	if err, ok := e.(*Error); ok {
+		return err.Code
+	}
 
-    if err, ok := e.(*exec.ExitError); ok {
-        if ws, ok := err.Sys().(syscall.WaitStatus); ok {
-            return ws.ExitStatus()
-        }
-    }
+	if err, ok := e.(*exec.ExitError); ok {
+		if ws, ok := err.Sys().(syscall.WaitStatus); ok {
+			return ws.ExitStatus()
+		}
+	}
 
-    return 1
+	return 1
 }
 
 /**
@@ -464,7 +464,7 @@ func CreateTestBuild() (*TestBuildParams, error) {
 }
 
 // export copy
-func Copy(src, dst string) (int64, error) {
+func NetCopy(src, dst string) (int64, error) {
 
 	if len(src) == 0 || len(dst) == 0 {
 		return 0, nil
@@ -515,5 +515,18 @@ func Copy(src, dst string) (int64, error) {
 
 	defer destFile.Close()
 
-	return io.Copy(destFile, srcReader)
+	bytes, err := io.Copy(destFile, srcReader)
+
+	if err != nil {
+		return bytes, err
+	}
+
+	err = os.Chmod(dst, stat.Mode())
+
+	if err != nil {
+		return bytes, err
+	}
+
+	return bytes, nil
+
 }

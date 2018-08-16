@@ -1,5 +1,6 @@
 {
-    "executable": "@BINARY_NAME@",
-    "version": "0.1.0",
-    "type": "configuration"
+  "executable": "@BINARY_NAME@",
+  "version": "0.1.0",
+  "priority": 0,
+  "type": "configuration"
 }

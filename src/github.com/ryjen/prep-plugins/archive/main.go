@@ -1,13 +1,13 @@
 package main
 
 import (
+	"errors"
 	"github.com/mholt/archiver"
 	"github.com/ryjen/prep-plugins/support"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
-	"mime"
-	"errors"
 )
 
 type FileVersionInfo struct {
@@ -67,15 +67,15 @@ func Resolve(p *support.Plugin) error {
 
 	params, err := p.ReadResolver()
 
-    if len(params.Location) == 0 || len(params.Path) == 0 {
-        return errors.New("invalid parameter")
-    }
+	if len(params.Location) == 0 || len(params.Path) == 0 {
+		return errors.New("invalid parameter")
+	}
 
 	if err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(params.Path, os.FileMode(755))
+	err = os.MkdirAll(params.Path, os.FileMode(0755))
 
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func Resolve(p *support.Plugin) error {
 
 	path := filepath.Join(os.TempDir(), filename)
 
-	_, err = support.Copy(params.Location, path)
+	_, err = support.NetCopy(params.Location, path)
 
 	if err != nil {
 		return err
@@ -108,6 +108,11 @@ func Resolve(p *support.Plugin) error {
 
 		if stat != nil && stat.Mode().IsDir() {
 			params.Path = newPath
+			err = os.Chmod(newPath, os.FileMode(0755))
+
+			if err != nil {
+				return err
+			}
 		}
 	}
 
