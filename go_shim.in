@@ -1,5 +1,0 @@
-#!/bin/sh
-
-export GOPATH=@CMAKE_CURRENT_LIST_DIR@
-
-@CMAKE_Go_COMPILER@ $@

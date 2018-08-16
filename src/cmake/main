@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
+
+PLUGIN_NAME="$(basename $PLUGIN_PATH)"
+
+SUPPORT_PATH="${PLUGIN_PATH/$PLUGIN_NAME/support}"
+
+SUPPORT_PLUGIN="${SUPPORT_PATH}/plugin"
+
+source $SUPPORT_PLUGIN
+
+function plugin_cmake_load() {
+
+  eval "cmake --version" > /dev/null
+
+  if [[ $? -ne 0 ]]; then
+    return $ERROR_NOT_FOUND
+  fi
+
+  return 0
+}
+
+function plugin_cmake_build() {
+
+  local input=$(plugin_read_build)
+
+  eval "declare -A params"=${input#*=}
+
+  if [ ! -d "${params[BuildPath]}" ]; then
+    echo "No such build path: ${params[BuildPath]}"
+    return 1
+  fi
+
+  cd "${params[BuildPath]}"
+
+  cmake -DCMAKE_INSTALL_PREFIX="${params[InstallPath]}" ${params[BuildOpts]} ${params[SourcePath]}
+
+}
+
+declare -A plugin=(
+  [OnLoad]=plugin_cmake_load
+  [OnBuild]=plugin_cmake_build
+)
+
+plugin_execute "$(declare -p plugin)"
+

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+if [ -z "$1" ]; then
+  echo "Build what and where?"
+  exit -1
+fi
+
+SOURCE_DIR=$1
+
+if [ ! -d $SOURCE_DIR ]; then
+  echo "Invalid source directory"
+fi
+
+BUILD_DIR=${2:-"$(mktemp -u)"}
+INSTALL_DIR=${3:-"$(mktemp -u)"}
+
+mkdir -p $BUILD_DIR
+mkdir -p $INSTALL_DIR
+
+echo "BUILD"
+echo "test-package"
+echo "1.0.1"
+echo "${SOURCE_DIR}"
+echo "${BUILD_DIR}"
+echo "${INSTALL_DIR}"
+echo ""
+echo "VAR1=VAL1"
+echo "END"
+

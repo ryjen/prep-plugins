@@ -10,3 +10,4 @@ src/github.com/ulikunitz/
 src/gopkg.in/
 
 .idea
+build

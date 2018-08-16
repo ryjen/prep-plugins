@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
+
+PLUGIN_NAME="$(basename $PLUGIN_PATH)"
+
+SUPPORT_PATH="${PLUGIN_PATH/$PLUGIN_NAME/support}"
+
+SUPPORT_PLUGIN="${SUPPORT_PATH}/plugin"
+
+source $SUPPORT_PLUGIN
+
+ERROR_GIT=128
+
+function plugin_git_load() {
+
+  eval "git --version" > /dev/null
+
+  if [[ $? -ne 0 ]]; then
+    return $ERROR_NOT_FOUND
+  fi
+
+  return 0
+}
+
+function plugin_git_resolve_existing() {
+  local path=$1
+  local location=$2
+  local branch=$3
+
+  if [ ! -d ${path} ]; then
+    mkdir -p ${path}
+  fi
+
+  cd ${path}
+
+  local status=$?
+
+  if [[ $status -ne 0 ]]; then
+    return $status
+  fi
+
+  # get a trimmed remote origin
+  local origin=$(git remote get-url origin | xargs)
+
+  if [ "$origin" != "${location}" ]; then
+    plugin_error "Unknown origin $origin for ${location}"
+    return -1
+  fi
+
+  # get the current branch
+  local current_branch=$(git rev-parse --abbrev-ref HEAD | xargs)
+
+  status=$?
+
+  if [[ $status -ne 0 ]]; then
+    return $status
+  fi
+
+  if [ "$current_branch" != "$branch" ]; then
+    git checkout $branch
+  else
+    git pull -q origin branch
+  fi
+}
+
+function plugin_git_resolve() {
+  local input=$(plugin_read_resolver)
+
+  eval "declare -A params"=${input#*=}
+
+  if [ -z "${params[Location]}" ] || [ -z "${params[Path]}" ]; then
+    plugin_error "missing parameter"
+    return -1
+  fi
+
+  IFS='#' read location branch <<< ${params[Location]}
+
+  if [ -z "${branch}" ]; then
+    branch="master"
+  fi
+
+  plugin_echo "Cloning ${location} ($branch)"
+
+  sync
+
+  git clone -q ${location} -b ${branch} --single-branch ${params[Path]}
+
+  local status=$?
+
+  if [[ $status -ne 0 ]]; then
+    plugin_git_resolve_existing "${params[Path]}" "${location}" "${branch}"
+
+    if [[ $? -ne 0 ]]; then
+      return $status
+    fi
+
+  else
+    cd ${params[Path]}
+
+    status=$?
+
+    if [[ $status -ne 0 ]]; then
+      return $status
+    fi
+  fi
+
+  plugin_echo "Updating submodules"
+
+  sync
+
+  git submodule -q update --init --recursive
+
+  status=$?
+
+  if [[ $status -ne 0 ]]; then
+    return $status
+  fi
+
+  plugin_return ${params[Path]}
+
+  return $status
+}
+
+declare -A plugin=(
+[OnLoad]=plugin_git_load
+[OnResolve]=plugin_git_resolve
+)
+
+plugin_execute "$(declare -p plugin)"
+
+

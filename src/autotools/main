@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
+
+PLUGIN_NAME="$(basename $PLUGIN_PATH)"
+
+SUPPORT_PATH="${PLUGIN_PATH/$PLUGIN_NAME/support}"
+
+SUPPORT_PLUGIN="${SUPPORT_PATH}/plugin"
+
+source $SUPPORT_PLUGIN
+
+function plugin_autotools_load() {
+
+  eval "autoconf --version" > /dev/null
+
+  if [[ $? -ne 0 ]]; then
+    return $ERROR_NOT_FOUND
+  fi
+
+  #eval "automake --version" > /dev/null
+
+  #if [[ $? -ne 0 ]]; then
+  #  return $ERROR_NOT_FOUND
+  #fi
+
+  return 0
+}
+
+function plugin_autotools_autogen() {
+  eval "declare -A params"=${1#*=}
+
+  local autogen="${params[SourcePath]}/autogen.sh"
+
+  if [ ! -x "$autogen" ]; then
+    plugin_error "No autogen script found for $PLUGIN_NAME plugin"
+    return -1;
+  fi
+
+  cd ${params[SourcePath]}
+
+  local status=$?
+
+  if [[ $status -ne 0 ]]; then
+    plugin_error "Source path (${params[SourcePath]}) doesn't exist?"
+    return $status
+  fi
+
+  $autogen ${params[BuildOpts]} ${params[SourcePath]}
+}
+
+
+function plugin_autotools_build() {
+  local input=$(plugin_read_build)
+
+  eval "declare -A params"=${input#*=}
+
+  local status=0
+
+  local configure="${params[SourcePath]}/configure"
+
+  if [ ! -x "$configure" ]; then
+    
+    plugin_autotools_autogen $input
+
+    status=$?
+
+    if [[ $status -ne 0 ]]; then
+      return $status
+    fi
+
+    if [[ ! -x "$configure" ]]; then
+      plugin_error "Unable to generate configure script for $PLUGIN_NAME plugin"
+      return $ERROR_NOT_AVAILABLE
+    fi
+
+  fi
+
+  cd ${params[BuildPath]}
+  
+  status=$?
+
+  if [[ $status -ne 0 ]]; then
+    plugin_error "Build path (${params[BuildPath]}) doesn't exist?"
+    return $status
+  fi
+
+  $configure --prefix="${params[InstallPath]}" ${params[BuildOpts]} ${params[SourcePath]}
+
+}
+
+declare -A plugin=(
+  [OnLoad]=plugin_autotools_load
+  [OnBuild]=plugin_autotools_build
+)
+
+plugin_execute "$(declare -p plugin)"
+
+

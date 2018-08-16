@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
+
+PLUGIN_NAME="$(basename $PLUGIN_PATH)"
+
+SUPPORT_PATH="${PLUGIN_PATH/$PLUGIN_NAME/support}"
+
+SUPPORT_PLUGIN="${SUPPORT_PATH}/plugin"
+
+source $SUPPORT_PLUGIN
+
+function plugin_apt_load() {
+
+  eval "apt-get --version" > /dev/null
+
+  if [[ $? -ne 0 ]]; then
+    return $ERROR_NOT_FOUND
+  fi
+
+  return 0
+}
+
+function plugin_apt_add() {
+
+  local input=$(plugin_read_dependency)
+
+  eval "declare -A params"=${input#*=}
+
+  plugin_sudo $PLUGIN_NAME apt-get install -qy ${params[Package]}
+}
+
+function plugin_apt_remove() {
+  local input=$(plugin_read_dependency)
+
+  eval "declare -A params"=${input#*=}
+
+  plugin_sudo $PLUGIN_NAME apt-get remove ${params[Package]}
+}
+
+declare -A plugin=(
+  [OnLoad]=plugin_apt_load
+  [OnAdd]=plugin_apt_add
+  [OnRemove]=plugin_apt_remove
+)
+
+plugin_execute "$(declare -p plugin)"
+
+
