@@ -1,6 +1,0 @@
-{
-  "executable": "@BINARY_NAME@",
-  "version": "0.1.0",
-  "priority": 10,
-  "type": "resolver"
-}

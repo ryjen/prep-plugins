@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+
+ERROR_NOT_FOUND=127
+ERROR_NOT_AVAIL=128
+
+function plugin_read_env() {
+
+  local line
+
+  while read line; do
+    if [ "${line^^}" == "END" ]; then
+      return 0
+    fi
+    export $line
+  done
+}
+
+function plugin_error() {
+  echo "ERROR $@"
+}
+
+function plugin_info() {
+  echo "INFO $@"
+}
+
+function plugin_warn() {
+  echo "WARN $@"
+}
+
+function plugin_trace() {
+  echo "TRACE $@"
+}
+
+function plugin_echo() {
+  echo "ECHO $@"
+}
+
+function plugin_return() {
+  echo "RETURN $@"
+}
+
+function plugin_read_build() {
+  declare -A params
+
+  local line
+
+  read line
+
+  params[Package]=$line
+
+  read line
+
+  params[Version]=$line
+
+  read line
+
+  params[SourcePath]=$line
+
+  read line
+
+  params[BuildPath]=$line
+
+  read line
+
+  params[InstallPath]=$line
+
+  read line
+
+  params[BuildOpts]=$line
+
+  plugin_read_env
+
+  echo "$(declare -p params)"
+}
+
+function plugin_read_dependency() {
+
+  declare -A params
+
+  local line
+
+  read line
+
+  params[Package]=$line
+
+  read line
+
+  params[Version]=$line
+
+  read line
+
+  params[Repository]=$line
+
+  plugin_read_env
+
+  echo "$(declare -p params)"
+}
+
+function plugin_read_resolver() {
+
+  declare -A params
+
+  local line
+
+  read line
+
+  params[Path]=$line
+
+  read line
+
+  params[Location]=$line
+
+  plugin_read_env
+
+  echo "$(declare -p params)"
+}
+
+function plugin_execute() {
+
+  eval "declare -A plugin"=${1#*=}  
+
+  read command
+
+  case ${command^^} in
+    LOAD)
+      ${plugin[OnLoad]} ${plugin[@]}
+      ;;
+    UNLOAD)
+      ${plugin[OnUnload]} ${plugin[@]}
+      ;;
+    RESOLVE)
+      ${plugin[OnResolve]} ${plugin[@]}
+      ;;
+    BUILD)
+      ${plugin[OnBuild]} ${plugin[@]}
+      ;;
+    ADD)
+      ${plugin[OnAdd]} ${plugin[@]}
+      ;;
+    REMOVE)
+      ${plugin[OnRemove]} ${plugin[@]}
+      ;;
+    TEST)
+      ${plugin[OnTest]} ${plugin[@]}
+      ;;
+    INSTALL)
+      ${plugin[OnInstall]} ${plugin[@]}
+      ;;
+    *)
+      plugin_error "Unknown plugin hook: $command"
+      return -1
+  esac
+}
+
+function plugin_sudo() {
+
+  local user=$(id -un)
+  local groups=$(id -Gn)
+
+  if [ "$user" == "root" ]; then
+    plugin_warn "Running apt plugin as root"
+    $@
+  else
+    if ! type sudo > /dev/null; then
+      plugin_error "Sudo command not found for the apt plugin"
+      return -1
+    fi
+
+
+    if [[ ! "${groups[@]}" =~ "sudo" ]]; then
+      plugin_error "Sudo group required for the apt plugin"
+      return -1
+    fi
+
+    sudo $@
+  fi
+}
+
+if [[ ${BASH_VERSINFO[0]} < 4 ]]; then
+  plugin_error "bash version 4 required"
+fi
+
+

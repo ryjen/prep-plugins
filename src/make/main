@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
+
+PLUGIN_NAME="$(basename $PLUGIN_PATH)"
+
+SUPPORT_PATH="${PLUGIN_PATH/$PLUGIN_NAME/support}"
+
+SUPPORT_PLUGIN="${SUPPORT_PATH}/plugin"
+
+source $SUPPORT_PLUGIN
+
+function plugin_make_load() {
+
+  eval "make --version" > /dev/null
+
+  if [[ $? -ne 0 ]]; then
+    return $ERROR_NOT_FOUND
+  fi
+
+  return 0
+}
+
+function plugin_make_build() {
+  local input=$(plugin_read_build)
+
+  eval "declare -A params"=${input#*=}
+
+  cd "${params[BuildPath]}"
+
+  local mfile="${params[BuildPath]}/Makefile"
+
+  if [ -f $mfile ]; then
+    make -f "$mfile" -I ${params[BuildPath]} $@
+  else
+    mfile="${params[SourcePath]}/Makefile"
+
+    if [ ! -f $mfile ]; then
+      plugin_error "Cannot find Makefile file for $PLUGIN_NAME plugin"
+      return -1
+    fi
+    make -f "$mfile" -I ${params[SourcePath]} $@
+  fi
+}
+
+function plugin_make_test() {
+  plugin_make_build "test"
+}
+
+declare -A plugin=(
+  [OnLoad]=plugin_make_load
+  [OnBuild]=plugin_make_build
+  [OnTest]=plugin_make_test
+)
+
+plugin_execute "$(declare -p plugin)"
+
+
