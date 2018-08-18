@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
+
+PLUGIN_NAME="$(basename $PLUGIN_PATH)"
+
+SUPPORT_PATH="${PLUGIN_PATH/$PLUGIN_NAME/support}"
+
+SUPPORT_PLUGIN="${SUPPORT_PATH}/plugin"
+
+source $SUPPORT_PLUGIN
+
+ERROR_GIT=128
+
+function plugin_git_load() {
+
+  eval "git --version" > /dev/null
+
+  if [[ $? -ne 0 ]]; then
+    return $ERROR_NOT_FOUND
+  fi
+
+  return 0
+}
+
+function plugin_git_resolve_existing() {
+  eval "declare -A params"=${1#*=}
+  local branch=$2
+
+  cd ${params[Path]}
+
+  if [[ $? -ne 0 ]]; then
+    return $?
+  fi
+
+  # get a trimmed remote origin
+  local origin=$(git remote get-url origin | xargs)
+
+  if [ "$origin" != "${params[Location]}" ]; then
+    plugin_error "Unknown origin $origin for ${params[Location]}"
+    return -1
+  fi
+
+  # get the current branch
+  local current_branch=$(git rev-parse --abbrev-ref HEAD | xargs)
+
+  if [[ $? -ne 0 ]]; then
+    return $?
+  fi
+  
+  if [ "$current_branch" != "$branch" ]; then
+    git checkout $branch
+  else
+    git pull -q origin branch
+  fi
+}
+
+function plugin_git_resolve() {
+  local input=$(plugin_read_resolver)
+
+  eval "declare -A params"=${input#*=}
+
+  if [ -z "${params[Location]}" ] || [ -z "${params[Path]}" ]; then
+    plugin_error "missing parameter"
+    return -1
+  fi
+
+  local branch="master"
+
+  extra=(${branch//#/ })
+
+  if [[ ${#extra[@]} -gt 1 ]]; then
+    branch = ${extra[1]}
+    params[Location] = ${extra[0]}
+  fi
+
+  plugin_echo "Cloning ${params[Location]} ($branch)"
+
+  git clone -q ${params[Location]} -b ${branch} --single-branch ${params[Path]}
+
+  if [[ $? -ne 0 ]]; then
+    if [[ $? -eq $ERROR_GIT ]]; then
+      return $?
+    fi
+    plugin_git_resolve_existing "$(declare -p params)" ${branch}
+  else
+    cd ${params[Path]}
+
+    if [[ $? -ne 0 ]]; then
+      return $?
+    fi
+  fi
+
+    plugin_echo "Updating submodules"
+
+    git submodule -q update --init --recursive
+
+    local err=$?
+
+    if [[ $err -ne 0 ]]; then
+      return $err
+    fi
+
+    plugin_return ${params[Path]}
+
+    return $err
+}
+
+
+declare -A plugin=(
+  [OnLoad]=plugin_apt_load
+  [OnAdd]=plugin_apt_add
+  [OnRemove]=plugin_apt_remove
+)
+
+plugin_execute "$(declare -p plugin)"
+
+

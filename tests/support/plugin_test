@@ -1,0 +1,25 @@
+
+function plugin_execute() {
+
+  local name=$1
+  local method=$2
+  local input_file=$3
+
+  local plugin=${0/tests/src}
+
+  if [ ! -x "$plugin" ]; then
+    echo "Invalid plugin for execute (${plugin})"
+    return -1
+  fi
+
+  local data=${0/$PLUGIN_PATH/data}
+
+  case $method in
+  
+    LOAD)
+      ${plugin} < ${data}/${input_file}
+    *)
+  esac
+
+}
+

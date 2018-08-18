@@ -1,0 +1,37 @@
+#!/usr/bin/env bats
+
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
+
+PLUGIN_NAME="$(basename $PLUGIN_PATH)"
+
+SUPPORT_PATH="${PLUGIN_PATH/$PLUGIN_NAME/support}"
+
+SUPPORT_PLUGIN="${SUPPORT_PATH}/plugin_test"
+
+source $SUPPORT_PLUGIN
+
+@test "load available" {
+  local output=$(plugin_execute "git" "load" "resolver_input.txt")
+
+  [[ $? -eq 0 ]]
+}
+
+@test "load unavailable" {
+  alias git=''
+  local output=$(plugin_execute "git" "load" "resolver_input.txt")
+
+  [[ $? -eq 0 ]]
+}
+
+@test "resolve successfully" {
+}
+
+@test "resolve invalid location" {
+}
+
+@test "resolve existing" {
+}
+
+@test "resolve invalid source" {
+}
+

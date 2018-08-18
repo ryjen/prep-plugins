@@ -1,0 +1,5 @@
+RESOLVE
+/tmp
+/tmp
+VAR1=VAL1
+END

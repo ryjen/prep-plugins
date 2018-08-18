@@ -1,0 +1,14 @@
+#!/usr/bin/env bats
+
+@test "test available" {
+  alias apt-get=''
+
+  ${CMAKE_PROJECT_BINARY_DIR}/cmake/main < ${CMAKE_PROJECT_SOURCE_DIR}/tests/data/load_input.txt
+
+  [ "$result" -eq 4 ]
+}
+
+@test "addition using dc" {
+  result="$(echo 2 2+p | dc)"
+  [ "$result" -eq 4 ]
+}
