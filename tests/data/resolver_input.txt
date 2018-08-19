@@ -1,5 +1,5 @@
 RESOLVE
 /tmp
-/tmp
+tests/data/archiver/test-0.1.0.tar.gz
 VAR1=VAL1
 END

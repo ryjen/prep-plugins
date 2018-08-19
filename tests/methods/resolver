@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+if [ -z "$1" ]; then
+  echo "Resolver with which file?"
+  return -1
+fi
+
+FILE_URI=$1
+
+if [ -f "$FILE_URI" ]; then
+  FILE_URI=$(readlink -f $FILE_URI)
+fi
+
+TEMP_DIR=${2:-"/tmp"}
+
+echo "RESOLVE"
+echo "/tmp"
+echo "$FILE_URI"
+echo "VAR1=VAL1"
+echo "END"
+

@@ -7,8 +7,6 @@ project (prep-plugins VERSION 0.1)
 
 enable_testing()
 
-set(TEST_DATA_PATH ${CMAKE_CURRENT_LIST_DIR}/tests/data)
-
 add_subdirectory(src)
 add_subdirectory(tests)
 

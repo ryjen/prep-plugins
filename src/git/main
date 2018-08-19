@@ -108,9 +108,8 @@ function plugin_git_resolve() {
 
 
 declare -A plugin=(
-  [OnLoad]=plugin_apt_load
-  [OnAdd]=plugin_apt_add
-  [OnRemove]=plugin_apt_remove
+  [OnLoad]=plugin_git_load
+  [OnResolve]=plugin_git_add
 )
 
 plugin_execute "$(declare -p plugin)"

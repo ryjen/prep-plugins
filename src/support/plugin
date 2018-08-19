@@ -35,6 +35,10 @@ function plugin_echo() {
   echo "ECHO $@"
 }
 
+function plugin_emit() {
+  echo "EMIT $@"
+}
+
 function plugin_return() {
   echo "RETURN $@"
 }
@@ -115,36 +119,46 @@ function plugin_read_resolver() {
   echo "$(declare -p params)"
 }
 
+function plugin_execute_method() {
+  if type $1 > /dev/null; then
+    $1
+  fi
+}
+
 function plugin_execute() {
 
   eval "declare -A plugin"=${1#*=}  
 
-  read command
+  IFS='' read -r command
+
+  if [ ! -n "$command" ]; then
+    return 0
+  fi
 
   case ${command^^} in
     LOAD)
-      ${plugin[OnLoad]} ${plugin[@]}
+      plugin_execute_method ${plugin[OnLoad]}
       ;;
     UNLOAD)
-      ${plugin[OnUnload]} ${plugin[@]}
+      plugin_execute_method ${plugin[OnUnload]}
       ;;
     RESOLVE)
-      ${plugin[OnResolve]} ${plugin[@]}
+      plugin_execute_method ${plugin[OnResolve]}
       ;;
     BUILD)
-      ${plugin[OnBuild]} ${plugin[@]}
+      plugin_execute_method ${plugin[OnBuild]}
       ;;
     ADD)
-      ${plugin[OnAdd]} ${plugin[@]}
+      plugin_execute_method ${plugin[OnAdd]}
       ;;
     REMOVE)
-      ${plugin[OnRemove]} ${plugin[@]}
+      plugin_execute_method ${plugin[OnRemove]}
       ;;
     TEST)
-      ${plugin[OnTest]} ${plugin[@]}
+      plugin_execute_method ${plugin[OnTest]}
       ;;
     INSTALL)
-      ${plugin[OnInstall]} ${plugin[@]}
+      plugin_execute_method ${plugin[OnInstall]}
       ;;
     *)
       plugin_error "Unknown plugin hook: $command"
@@ -156,6 +170,7 @@ function plugin_sudo() {
 
   local user=$(id -un)
   local groups=$(id -Gn)
+  local plugin=$1
 
   if [ "$user" == "root" ]; then
     plugin_warn "Running apt plugin as root"
@@ -166,18 +181,20 @@ function plugin_sudo() {
       return -1
     fi
 
-
     if [[ ! "${groups[@]}" =~ "sudo" ]]; then
       plugin_error "Sudo group required for the apt plugin"
       return -1
     fi
 
-    sudo $@
+    plugin_emit "[$plugin] Password: "
+
+    read -s PASS
+
+    echo $PASS | sudo -Ssk $@
   fi
 }
 
 if [[ ${BASH_VERSINFO[0]} < 4 ]]; then
   plugin_error "bash version 4 required"
 fi
-
 

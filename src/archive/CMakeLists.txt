@@ -3,14 +3,8 @@ set(BINARY_NAME main)
 
 get_filename_component(PLUGIN_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 
-set(MANIFEST_NAME "manifest.json")
+add_custom_target(${PLUGIN_NAME})
 
-set(OUTPUT_FOLDER "${CMAKE_BINARY_DIR}/gen/plugins/${PLUGIN_NAME}")
-
-file(MAKE_DIRECTORY ${OUTPUT_FOLDER})
-
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${MANIFEST_NAME}.in")
-  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/${MANIFEST_NAME}.in" "${OUTPUT_FOLDER}/${MANIFEST_NAME}" @ONLY)
-endif()
+add_plugin(TARGET ${PLUGIN_NAME} EXECUTABLE ${BINARY_NAME})
 
 

@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+PLUGIN_PATH="$(dirname "${BASH_SOURCE[0]}")"
+
+PLUGIN_NAME="$(basename $PLUGIN_PATH)"
+
+SUPPORT_PATH="${PLUGIN_PATH/$PLUGIN_NAME/support}"
+
+SUPPORT_PLUGIN="${SUPPORT_PATH}/plugin"
+
+source $SUPPORT_PLUGIN
+
+ERROR_GIT=128
+
+function is_uri_scheme() {
+  [[ $1 = *"://"* ]]
+}
+
+function plugin_archive_load() {
+
+  eval "tar --version" > /dev/null
+
+  if [[ $? -ne 0 ]]; then
+    return $ERROR_NOT_FOUND
+  fi
+
+  return 0
+}
+
+function plugin_archive_download() {
+  
+  local temp_dir=$1
+
+  local url=$2
+
+  local archive_file = $(basename $url)
+
+  curl -o "$temp_dir/$archive_file" $url
+}
+
+function plugin_archive_resolve() {
+  local input=$(plugin_read_resolver)
+
+  eval "declare -A params"=${input#*=}
+
+  local temp_dir=$(mktemp -d)
+
+  local archive_file=${params[Location]}
+
+  local archive_name=$(basename ${archive_file})
+
+  if is_uri_scheme $archive_file; then
+    plugin_archive_download ${temp_dir} ${archive_file}
+
+    if [[ $? -ne 0 ]]; then
+      plugin_error "Unable to download $archive_file"
+      return -1
+    fi
+    
+    archive_file="$temp_dir/$archive_name"
+  elif [ ! -f ${archive_file} ]; then
+    plugin_error "Archive location is not a url or a file (${params[Location]})"
+    return -1
+  fi
+
+  tar -xaf "$archive_file" -C "${params[Path]}"
+
+  if [[ $? -ne 0 ]]; then
+    plugin_error "Unable to extract $archive_file"
+    return $?
+  fi
+
+  plugin_return "${params[Path]}"
+}
+
+
+declare -A plugin=(
+  [OnLoad]=plugin_archive_load
+  [OnResolve]=plugin_archive_resolve
+)
+
+plugin_execute "$(declare -p plugin)"
+
+
