@@ -3,6 +3,10 @@
 ERROR_NOT_FOUND=127
 ERROR_NOT_AVAIL=128
 
+if [[ ${BASH_VERSINFO[0]} < 4 ]]; then
+  echo "bash version 4 required"
+fi
+
 function plugin_read_env() {
 
   local line
@@ -122,6 +126,8 @@ function plugin_read_resolver() {
 function plugin_execute_method() {
   if type $1 > /dev/null; then
     $1
+  else
+    return -1
   fi
 }
 
@@ -172,17 +178,19 @@ function plugin_sudo() {
   local groups=$(id -Gn)
   local plugin=$1
 
+  shift
+
   if [ "$user" == "root" ]; then
-    plugin_warn "Running apt plugin as root"
+    plugin_warn "Running $plugin plugin as root"
     $@
   else
     if ! type sudo > /dev/null; then
-      plugin_error "Sudo command not found for the apt plugin"
+      plugin_error "Sudo command not found for the $plugin plugin"
       return -1
     fi
 
     if [[ ! "${groups[@]}" =~ "sudo" ]]; then
-      plugin_error "Sudo group required for the apt plugin"
+      plugin_error "Sudo group required for the $plugin plugin"
       return -1
     fi
 
@@ -194,7 +202,4 @@ function plugin_sudo() {
   fi
 }
 
-if [[ ${BASH_VERSINFO[0]} < 4 ]]; then
-  plugin_error "bash version 4 required"
-fi
 

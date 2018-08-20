@@ -52,3 +52,4 @@ add_subdirectory(make)
 set(PLUGINS support make cmake autotools git homebrew archive apt)
 
 add_custom_target(build_plugins ALL DEPENDS ${PLUGINS})
+

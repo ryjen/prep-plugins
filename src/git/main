@@ -47,7 +47,7 @@ function plugin_git_resolve_existing() {
   if [[ $? -ne 0 ]]; then
     return $?
   fi
-  
+
   if [ "$current_branch" != "$branch" ]; then
     git checkout $branch
   else
@@ -91,25 +91,25 @@ function plugin_git_resolve() {
     fi
   fi
 
-    plugin_echo "Updating submodules"
+  plugin_echo "Updating submodules"
 
-    git submodule -q update --init --recursive
+  git submodule -q update --init --recursive
 
-    local err=$?
+  local err=$?
 
-    if [[ $err -ne 0 ]]; then
-      return $err
-    fi
-
-    plugin_return ${params[Path]}
-
+  if [[ $err -ne 0 ]]; then
     return $err
+  fi
+
+  plugin_return ${params[Path]}
+
+  return $err
 }
 
 
 declare -A plugin=(
-  [OnLoad]=plugin_git_load
-  [OnResolve]=plugin_git_add
+[OnLoad]=plugin_git_load
+[OnResolve]=plugin_git_resolve
 )
 
 plugin_execute "$(declare -p plugin)"

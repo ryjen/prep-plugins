@@ -27,8 +27,6 @@ function plugin_apt_add() {
 
   eval "declare -A params"=${input#*=}
 
-  echo "apt installing"
-
   plugin_sudo $PLUGIN_NAME apt-get install ${params[Package]}
 }
 
