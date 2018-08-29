@@ -39,9 +39,11 @@ function plugin_autotools_autogen() {
 
   cd ${params[SourcePath]}
 
-  if [[ $? -ne 0 ]]; then
+  local status=$?
+
+  if [[ $status -ne 0 ]]; then
     plugin_error "Source path (${params[SourcePath]}) doesn't exist?"
-    return $?
+    return $status
   fi
 
   $autogen ${params[BuildOpts]} ${params[SourcePath]}
@@ -53,6 +55,7 @@ function plugin_autotools_build() {
 
   eval "declare -A params"=${input#*=}
 
+  local status=0
 
   local configure="${params[SourcePath]}/configure"
 
@@ -60,8 +63,10 @@ function plugin_autotools_build() {
     
     plugin_autotools_autogen $input
 
-    if [[ $? -ne 0 ]]; then
-      return $?
+    status=$?
+
+    if [[ $status -ne 0 ]]; then
+      return $status
     fi
 
     if [[ ! -x "$configure" ]]; then
@@ -72,10 +77,12 @@ function plugin_autotools_build() {
   fi
 
   cd ${params[BuildPath]}
+  
+  status=$?
 
-  if [[ $? -ne 0 ]]; then
+  if [[ $status -ne 0 ]]; then
     plugin_error "Build path (${params[BuildPath]}) doesn't exist?"
-    return $?
+    return $status
   fi
 
   $configure --prefix="${params[InstallPath]}" ${params[BuildOpts]} ${params[SourcePath]}

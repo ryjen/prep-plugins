@@ -1,14 +1,27 @@
 #!/usr/bin/env bats
 
-@test "test available" {
-  alias apt-get=''
+load "../support/lib"
 
-  ${CMAKE_PROJECT_BINARY_DIR}/cmake/main < ${CMAKE_PROJECT_SOURCE_DIR}/tests/data/load_input.txt
+type cmake > /dev/null 2>&1
 
-  [ "$result" -eq 4 ]
+exists=$?
+
+@test "available" {
+  
+  run plugin_script "load_input.txt"
+
+  [ "$status" -eq $exists ]
 }
 
-@test "addition using dc" {
-  result="$(echo 2 2+p | dc)"
-  [ "$result" -eq 4 ]
+@test "unavailable" {
+  
+  if [ "$exists" -ne 0 ]; then
+    skip
+  fi
+
+  run plugin_script "load_input.txt"
+
+  [ "$status" -eq 0 ]
 }
+
+

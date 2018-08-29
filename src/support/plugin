@@ -20,31 +20,31 @@ function plugin_read_env() {
 }
 
 function plugin_error() {
-  echo "ERROR $@"
+  printf "ERROR $@\n"
 }
 
 function plugin_info() {
-  echo "INFO $@"
+  printf "INFO $@\n"
 }
 
 function plugin_warn() {
-  echo "WARN $@"
+  printf "WARN $@\n"
 }
 
 function plugin_trace() {
-  echo "TRACE $@"
+  printf "TRACE $@\n"
 }
 
 function plugin_echo() {
-  echo "ECHO $@"
+  printf "ECHO $@\n"
 }
 
 function plugin_emit() {
-  echo "EMIT $@"
+  printf "EMIT $@\n"
 }
 
 function plugin_return() {
-  echo "RETURN $@"
+  printf "RETURN $@\n"
 }
 
 function plugin_read_build() {

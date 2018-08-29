@@ -38,6 +38,7 @@ function(add_plugin)
 
 endfunction()
 
+set(SUPPORT_PATH "${CMAKE_CURRENT_LIST_DIR}/support" PARENT_SCOPE)
 
 add_subdirectory(support)
 

@@ -2,7 +2,7 @@
 
 if [ -z "$1" ]; then
   echo "Resolver with which file?"
-  return -1
+  exit -1
 fi
 
 FILE_URI=$1
@@ -11,10 +11,10 @@ if [ -f "$FILE_URI" ]; then
   FILE_URI=$(readlink -f $FILE_URI)
 fi
 
-TEMP_DIR=${2:-"/tmp"}
+TEMP_DIR=${2:-"$(mktemp -u)"}
 
 echo "RESOLVE"
-echo "/tmp"
+echo "$TEMP_DIR"
 echo "$FILE_URI"
 echo "VAR1=VAL1"
 echo "END"

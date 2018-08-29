@@ -1,2 +1,2 @@
 
-add_test(PLUGIN_TEST_GIT  main)
+add_test(git  ${CMAKE_CURRENT_LIST_DIR}/main)

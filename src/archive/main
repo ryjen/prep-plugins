@@ -65,9 +65,11 @@ function plugin_archive_resolve() {
 
   tar -xaf "$archive_file" -C "${params[Path]}"
 
-  if [[ $? -ne 0 ]]; then
+  local status=$? 
+
+  if [[ $status -ne 0 ]]; then
     plugin_error "Unable to extract $archive_file"
-    return $?
+    return $status
   fi
 
   plugin_return "${params[Path]}"

@@ -29,8 +29,10 @@ function plugin_git_resolve_existing() {
 
   cd ${params[Path]}
 
-  if [[ $? -ne 0 ]]; then
-    return $?
+  local status=$?
+
+  if [[ $status -ne 0 ]]; then
+    return $status
   fi
 
   # get a trimmed remote origin
@@ -44,8 +46,10 @@ function plugin_git_resolve_existing() {
   # get the current branch
   local current_branch=$(git rev-parse --abbrev-ref HEAD | xargs)
 
-  if [[ $? -ne 0 ]]; then
-    return $?
+  status=$?
+
+  if [[ $status -ne 0 ]]; then
+    return $status
   fi
 
   if [ "$current_branch" != "$branch" ]; then
@@ -78,16 +82,22 @@ function plugin_git_resolve() {
 
   git clone -q ${params[Location]} -b ${branch} --single-branch ${params[Path]}
 
-  if [[ $? -ne 0 ]]; then
-    if [[ $? -eq $ERROR_GIT ]]; then
-      return $?
-    fi
+  local status=$?
+
+  if [[ $status -ne 0 ]]; then
     plugin_git_resolve_existing "$(declare -p params)" ${branch}
+
+    if [[ $? -ne 0 ]]; then
+      return $status
+    fi
+
   else
     cd ${params[Path]}
 
-    if [[ $? -ne 0 ]]; then
-      return $?
+    status=$?
+
+    if [[ $status -ne 0 ]]; then
+      return $status
     fi
   fi
 
@@ -95,15 +105,15 @@ function plugin_git_resolve() {
 
   git submodule -q update --init --recursive
 
-  local err=$?
+  status=$?
 
-  if [[ $err -ne 0 ]]; then
-    return $err
+  if [[ $status -ne 0 ]]; then
+    return $status
   fi
 
   plugin_return ${params[Path]}
 
-  return $err
+  return $status
 }
 
 
