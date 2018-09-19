@@ -27,6 +27,10 @@ function plugin_git_resolve_existing() {
   eval "declare -A params"=${1#*=}
   local branch=$2
 
+  if [ ! -d ${params[Path]} ]; then
+    mkdir -p ${params[Path]}
+  fi
+
   cd ${params[Path]}
 
   local status=$?
@@ -70,17 +74,15 @@ function plugin_git_resolve() {
   fi
 
   local branch="master"
+  local location=${params[Location]}
 
-  extra=(${branch//#/ })
+  IFS='#' read location branch <<< ${params[Location]}
 
-  if [[ ${#extra[@]} -gt 1 ]]; then
-    branch = ${extra[1]}
-    params[Location] = ${extra[0]}
-  fi
+  plugin_echo "Cloning ${location} ($branch)"
 
-  plugin_echo "Cloning ${params[Location]} ($branch)"
+  sync
 
-  git clone -q ${params[Location]} -b ${branch} --single-branch ${params[Path]}
+  git clone -q ${location} -b ${branch} --single-branch ${params[Path]}
 
   local status=$?
 
@@ -103,6 +105,8 @@ function plugin_git_resolve() {
 
   plugin_echo "Updating submodules"
 
+  sync
+
   git submodule -q update --init --recursive
 
   status=$?
@@ -115,7 +119,6 @@ function plugin_git_resolve() {
 
   return $status
 }
-
 
 declare -A plugin=(
 [OnLoad]=plugin_git_load

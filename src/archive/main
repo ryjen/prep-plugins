@@ -47,6 +47,10 @@ function plugin_archive_resolve() {
 
   local archive_file=${params[Location]}
 
+  if [ -z "${archive_file}" ]; then
+    return 1
+  fi
+
   local archive_name=$(basename ${archive_file})
 
   if is_uri_scheme $archive_file; then
