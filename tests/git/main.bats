@@ -40,7 +40,9 @@ function resolve_success() {
 
   run plugin_script "load_input.txt"
 
-  [ "$status" -eq $exists ]
+  echo "$output"
+
+  [ $status -eq $exists ]
 }
 
 @test "load unavailable" {  
@@ -62,7 +64,9 @@ function resolve_success() {
     skip
   fi
 
-  run plugin_resolve "${TEST_ROOT_DIRNAME}/data/git"
+  run plugin_resolve "file://${TEST_ROOT_DIRNAME}/data/git"
+  
+  echo $output
 
   [ "$status" -eq 0 ]
 

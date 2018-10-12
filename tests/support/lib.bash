@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-TEST_ROOT_DIRNAME=$(dirname $BATS_TEST_DIRNAME)
+export TEST_ROOT_DIRNAME=$(dirname $BATS_TEST_DIRNAME)
 
-TEST_PLUGIN=${BATS_TEST_FILENAME/tests/src}
+export TEST_PLUGIN=${BATS_TEST_FILENAME/tests/src}
+export TEST_PLUGIN=${TEST_PLUGIN/.bats/}
 
 function plugin_script() {
 
@@ -16,6 +17,8 @@ function plugin_script() {
     echo "Invalid plugin for execute (${plugin})"
     return -1
   fi
+  
+  echo "executing ${plugin} on ${TEST_ROOT_DIRNAME}/data/${input_file}"
 
   ${plugin} < ${TEST_ROOT_DIRNAME}/data/${input_file}
 }
