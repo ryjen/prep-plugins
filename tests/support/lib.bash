@@ -17,7 +17,7 @@ function plugin_script() {
     echo "Invalid plugin for execute (${plugin})"
     return -1
   fi
-  
+
   echo "executing ${plugin} on ${TEST_ROOT_DIRNAME}/data/${input_file}"
 
   ${plugin} < ${TEST_ROOT_DIRNAME}/data/${input_file}
@@ -35,7 +35,19 @@ function plugin_resolve() {
   ${TEST_ROOT_DIRNAME}/methods/resolver $@ | ${plugin}
 }
 
+function plugin_build() {
+
+  local plugin=${TEST_PLUGIN}
+
+  if [ ! -x "${plugin}" ]; then
+    echo "Invalid plugin for execute (${plugin})"
+    return -1
+  fi
+
+  ${TEST_ROOT_DIRNAME}/methods/build $@ | ${plugin}
+}
+
 function errecho {
-    >&2 echo "$@"
+  >&2 echo "$@"
 }
 

@@ -22,13 +22,20 @@ function plugin_cmake_load() {
 }
 
 function plugin_cmake_build() {
+
   local input=$(plugin_read_build)
 
   eval "declare -A params"=${input#*=}
 
+  if [ ! -d "${params[BuildPath]}" ]; then
+    echo "No such build path: ${params[BuildPath]}"
+    return 1
+  fi
+
   cd "${params[BuildPath]}"
 
   cmake -DCMAKE_INSTALL_PREFIX="${params[InstallPath]}" ${params[BuildOpts]} ${params[SourcePath]}
+
 }
 
 declare -A plugin=(
@@ -37,5 +44,4 @@ declare -A plugin=(
 )
 
 plugin_execute "$(declare -p plugin)"
-
 
