@@ -2,13 +2,15 @@
 
 load "../support/lib"
 
-type cmake > /dev/null 2>&1
+type autoconf > /dev/null 2>&1
 
 exists=$?
 
 @test "available" {
   
   run plugin_script "load_input.txt"
+
+  errecho "$status = $exists"
 
   [ "$status" -eq $exists ]
 }
@@ -26,7 +28,7 @@ exists=$?
 
 @test "valid build" {
 
-  local SRCDIR="${TEST_ROOT_DIRNAME}/data/cmake"
+  local SRCDIR="${TEST_ROOT_DIRNAME}/data/autotools"
 
   if [ ! -d $SRCDIR ]; then
     echo "${SRCDIR} not a directory"

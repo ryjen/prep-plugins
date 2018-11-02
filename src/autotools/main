@@ -18,11 +18,11 @@ function plugin_autotools_load() {
     return $ERROR_NOT_FOUND
   fi
 
-  eval "automake --version" > /dev/null
+  #eval "automake --version" > /dev/null
 
-  if [[ $? -ne 0 ]]; then
-    return $ERROR_NOT_FOUND
-  fi
+  #if [[ $? -ne 0 ]]; then
+  #  return $ERROR_NOT_FOUND
+  #fi
 
   return 0
 }
