@@ -1,3 +1,3 @@
 
-add_test(homebrew ${CMAKE_CURRENT_LIST_DIR}/main)
+add_test(homebrew ${CMAKE_CURRENT_LIST_DIR}/main.bats)
 

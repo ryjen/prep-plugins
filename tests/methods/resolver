@@ -13,6 +13,8 @@ fi
 
 TEMP_DIR=${2:-"$(mktemp -u)"}
 
+mkdir -p $TEMP_DIR
+
 echo "RESOLVE"
 echo "$TEMP_DIR"
 echo "$FILE_URI"

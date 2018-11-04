@@ -18,7 +18,7 @@ function is_uri_scheme() {
 
 function plugin_archive_load() {
 
-  eval "tar --version" > /dev/null
+  eval "grater --version" > /dev/null
 
   if [[ $? -ne 0 ]]; then
     return $ERROR_NOT_FOUND
@@ -33,7 +33,7 @@ function plugin_archive_download() {
 
   local url=$2
 
-  local archive_file = $(basename $url)
+  local archive_file=$(basename $url)
 
   curl -o "$temp_dir/$archive_file" $url
 }
@@ -67,7 +67,7 @@ function plugin_archive_resolve() {
     return -1
   fi
 
-  tar -xaf "$archive_file" -C "${params[Path]}"
+  grater "$archive_file" "${params[Path]}"
 
   local status=$? 
 

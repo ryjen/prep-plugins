@@ -21,7 +21,7 @@ function plugin_brew_load() {
   return 0
 }
 
-function plugin_apt_add() {
+function plugin_brew_add() {
 
   local input=$(plugin_read_dependency)
 
@@ -30,7 +30,7 @@ function plugin_apt_add() {
   brew install ${params[Package]}
 }
 
-function plugin_apt_remove() {
+function plugin_brew_remove() {
   local input=$(plugin_read_dependency)
 
   eval "declare -A params"=${input#*=}

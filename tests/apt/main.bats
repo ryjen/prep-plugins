@@ -2,9 +2,9 @@
 
 load "../support/lib"
 
-run type brew
+type apt >/dev/null 2>&1
 
-exists=$status
+exists=$?
 
 @test "availability" {
 
@@ -18,7 +18,7 @@ exists=$status
     skip
   fi
 
-  alias brew=''
+  alias apt=''
 
   skip
 }
