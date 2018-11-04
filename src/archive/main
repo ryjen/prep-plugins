@@ -10,10 +10,38 @@ SUPPORT_PLUGIN="${SUPPORT_PATH}/plugin"
 
 source $SUPPORT_PLUGIN
 
-ERROR_GIT=128
-
 function is_uri_scheme() {
   [[ $1 = *"://"* ]]
+}
+
+extract () {
+  if [ ! -f "$1" ] ; then
+    echo "'$1' does not exist."
+    return 1
+  fi
+
+  if [ ! -d "$2" ] ; then
+    echo "Invalid output folder '$2'"
+    return 1
+  fi
+
+  case "$1" in
+    *.tar.bz2)   tar xvjf "$1" -C "$2"   ;;
+    *.tar.xz)    tar xvJf "$1" -C "$2"   ;;
+    *.tar.gz)    tar xvzf "$1" -C "$2"   ;;
+    *.bz2)       bunzip2 "$1"    ;;
+    *.rar)       rar xw "$2" "$1"     ;;
+    *.gz)        gunzip "$1"     ;;
+    *.tar)       tar xvf "$1" -C "$2"   ;;
+    *.tbz2)      tar xvjf "$1" -C "$2"   ;;
+    *.tgz)       tar xvzf "$1" -C "$2"   ;;
+    *.zip)       unzip "$1" -d "$2"     ;;
+    *.Z)         uncompress "$1" ;;
+    *.xz)        xz -d "$1"      ;;
+    *.7z)        7z x "$1" -o "$2"      ;;
+    *.a)         ar x "$1"       ;;
+    *)           echo "Unable to extract '$1'." ;;
+  esac
 }
 
 function plugin_archive_load() {
@@ -28,7 +56,7 @@ function plugin_archive_load() {
 }
 
 function plugin_archive_download() {
-  
+
   local temp_dir=$1
 
   local url=$2
@@ -60,14 +88,14 @@ function plugin_archive_resolve() {
       plugin_error "Unable to download $archive_file"
       return -1
     fi
-    
+
     archive_file="$temp_dir/$archive_name"
   elif [ ! -f ${archive_file} ]; then
     plugin_error "Archive location is not a url or a file (${params[Location]})"
     return -1
   fi
 
-  grater "$archive_file" "${params[Path]}"
+  extract "$archive_file" "${params[Path]}"
 
   local status=$? 
 
@@ -81,8 +109,8 @@ function plugin_archive_resolve() {
 
 
 declare -A plugin=(
-  [OnLoad]=plugin_archive_load
-  [OnResolve]=plugin_archive_resolve
+[OnLoad]=plugin_archive_load
+[OnResolve]=plugin_archive_resolve
 )
 
 plugin_execute "$(declare -p plugin)"

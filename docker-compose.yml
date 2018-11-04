@@ -1,0 +1,11 @@
+version: '2'
+services:
+  test:
+    image: prep_plugins_test
+    build:
+      context: .
+      args:
+          CMAKE_DEFINES: -DCMAKE_BUILD_TYPE=Release -DENABLE_MEMCHECK=ON -DCMAKE_CXX_COMPILER=g++
+    privileged: true
+    working_dir: /usr/src/docker-build
+    command: make test ARGS=-V

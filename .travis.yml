@@ -1,6 +1,14 @@
-language: bash
+sudo: required
+services:
+  - docker
+env:
+  DOCKER_COMPOSE_VERSION: 1.22.0
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq bats git cmake automake autoconf 
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv -f docker-compose /usr/local/bin
 script:
-  - bats tests
+  - docker-compose build test
+  - docker-compose run test
+  - docker-compose build coverage
+  - docker-compose run coverage
