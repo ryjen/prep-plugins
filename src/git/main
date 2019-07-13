@@ -24,14 +24,15 @@ function plugin_git_load() {
 }
 
 function plugin_git_resolve_existing() {
-  eval "declare -A params"=${1#*=}
-  local branch=$2
+  local path=$1
+  local location=$2
+  local branch=$3
 
-  if [ ! -d ${params[Path]} ]; then
-    mkdir -p ${params[Path]}
+  if [ ! -d ${path} ]; then
+    mkdir -p ${path}
   fi
 
-  cd ${params[Path]}
+  cd ${path}
 
   local status=$?
 
@@ -42,8 +43,8 @@ function plugin_git_resolve_existing() {
   # get a trimmed remote origin
   local origin=$(git remote get-url origin | xargs)
 
-  if [ "$origin" != "${params[Location]}" ]; then
-    plugin_error "Unknown origin $origin for ${params[Location]}"
+  if [ "$origin" != "${location}" ]; then
+    plugin_error "Unknown origin $origin for ${location}"
     return -1
   fi
 
@@ -88,7 +89,7 @@ function plugin_git_resolve() {
   local status=$?
 
   if [[ $status -ne 0 ]]; then
-    plugin_git_resolve_existing "$(declare -p params)" ${branch}
+    plugin_git_resolve_existing "${params[Path]}" "${location}" "${branch}"
 
     if [[ $? -ne 0 ]]; then
       return $status

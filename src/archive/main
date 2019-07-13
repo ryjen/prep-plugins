@@ -46,7 +46,19 @@ extract () {
 
 function plugin_archive_load() {
 
-  eval "grater --version" > /dev/null
+  eval "tar --version" > /dev/null
+
+  if [[ $? -ne 0 ]]; then
+    return $ERROR_NOT_FOUND
+  fi
+
+  eval "zip --version" > /dev/null 
+
+  if [[ $? -ne 0 ]]; then
+    return $ERROR_NOT_FOUND
+  fi
+
+  eval "curl --version" > /dev/null
 
   if [[ $? -ne 0 ]]; then
     return $ERROR_NOT_FOUND

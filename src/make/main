@@ -49,6 +49,10 @@ function plugin_make_build() {
   fi
 }
 
+function plugin_make_install() {
+  plugin_make_build "install"
+}
+
 function plugin_make_test() {
   plugin_make_build "test"
 }
@@ -56,6 +60,7 @@ function plugin_make_test() {
 declare -A plugin=(
   [OnLoad]=plugin_make_load
   [OnBuild]=plugin_make_build
+  [OnInstall]=plugin_make_install
   [OnTest]=plugin_make_test
 )
 

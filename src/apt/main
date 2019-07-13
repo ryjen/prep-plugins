@@ -27,7 +27,7 @@ function plugin_apt_add() {
 
   eval "declare -A params"=${input#*=}
 
-  plugin_sudo $PLUGIN_NAME apt-get install ${params[Package]}
+  plugin_sudo $PLUGIN_NAME apt-get install -qy ${params[Package]}
 }
 
 function plugin_apt_remove() {

@@ -15,7 +15,7 @@ function plugin_read_env() {
     if [ "${line^^}" == "END" ]; then
       return 0
     fi
-    export $line
+    export "$line"
   done
 }
 
@@ -133,7 +133,7 @@ function plugin_execute_method() {
 
 function plugin_execute() {
 
-  eval "declare -A plugin"=${1#*=}  
+  eval "declare -A plugin"=${1#*=}
 
   IFS='' read -r command
 
